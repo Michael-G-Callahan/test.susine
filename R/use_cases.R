@@ -1,0 +1,48 @@
+# Use case catalog -----------------------------------------------------------
+
+#' Predefined model configurations for simulation sweeps.
+#'
+#' Each row corresponds to one scenario described in the project brief.
+#'
+#' @return A tibble with metadata describing each use case.
+#' @export
+use_case_catalog <- function() {
+  tibble::tribble(
+    ~use_case_id, ~group, ~label, ~model_family, ~mu_strategy, ~sigma_strategy,
+    ~prior_update_method, ~auto_scale_mu, ~auto_scale_sigma,
+    ~estimate_sigma, ~estimate_prior, ~extra_compute,
+    ~requires_prior_quality, ~requires_annotations,
+    "a_i",   "1a", "SuSiE - naive sigma, naive mu",          "susie",  "naive",      "naive",
+    NA_character_, FALSE, FALSE, FALSE, FALSE, "none",       FALSE, FALSE,
+    "a_ii",  "1a", "SuSiE - EB sigma, naive mu",             "susie",  "naive",      "eb_sigma",
+    NA_character_, FALSE, FALSE, TRUE,  TRUE,  "none",       FALSE, FALSE,
+    "a_iii", "1a", "SuSiNE - EB mu, naive sigma",            "susine", "eb_mu",      "naive",
+    "mean",       TRUE,  FALSE, FALSE, FALSE, "none",       FALSE, TRUE,
+    "a_iv",  "1a", "SuSiNE - EB mu & sigma",                 "susine", "eb_mu",      "eb_sigma",
+    "both",       TRUE,  TRUE,  FALSE, FALSE, "none",       FALSE, TRUE,
+    "b_i",   "1b", "SuSiE + functional sigma (mu=0)",        "susie",  "naive",      "functional",
+    NA_character_, FALSE, FALSE, TRUE,  TRUE,  "none",       TRUE,  TRUE,
+    "b_ii",  "1b", "SuSiNE + functional mu (sigma EB)",      "susine", "functional", "eb_sigma",
+    "var",        TRUE,  FALSE, FALSE, FALSE, "none",       TRUE,  TRUE,
+    "b_iii", "1b", "SuSiNE + functional mu & sigma",         "susine", "functional", "functional",
+    "none",       TRUE,  TRUE,  FALSE, FALSE, "none",       TRUE,  TRUE,
+    "c_i",   "1c", "SuSiNE + tempering/annealing",           "susine", "naive",      "naive",
+    "none",       FALSE, FALSE, FALSE, FALSE, "anneal",     FALSE, TRUE,
+    "c_ii",  "1c", "SuSiNE + model averaging (multi-init)",  "susine", "naive",      "naive",
+    "none",       FALSE, FALSE, FALSE, FALSE, "model_avg",  FALSE, TRUE
+  )
+}
+
+#' Fetch use-case metadata for a given identifier vector.
+#'
+#' @param ids Character vector of use_case_id entries.
+#' @return Tibble subset of `use_case_catalog()`.
+#' @export
+resolve_use_cases <- function(ids) {
+  catalog <- use_case_catalog()
+  if (missing(ids) || is.null(ids)) {
+    return(catalog)
+  }
+  dplyr::semi_join(catalog, tibble::tibble(use_case_id = ids), by = "use_case_id")
+}
+

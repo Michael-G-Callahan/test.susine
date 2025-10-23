@@ -1,0 +1,215 @@
+---
+title: "SuSiNE Simulation Run Control"
+output:
+  html_document:
+    toc: true
+    toc_depth: 2
+    number_sections: true
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, message=FALSE}
+library(devtools)
+devtools::load_all(".")
+
+library(dplyr)
+library(tidyr)
+library(readr)
+library(knitr)
+```
+
+# Guided Workflow
+
+This workbook builds the control files needed to launch a simulation
+sweep on SLURM. It walks through the inputs you must supply, previews
+the resulting run matrix, and (optionally) writes the job configuration,
+array script, and helper R script.
+
+The generated artifacts follow the repository layout:
+
+-   `output/run_history/<job_name>` – immutable record of job
+    parameters.
+-   `output/slurm_scripts/<job_name>.slurm` – submission script.
+-   `inst/scripts/run_task.R` – task runner referenced by each SLURM
+    array task.
+-   During execution, results land in
+    `output/slurm_output/<job_name>/task-XXX/…`.
+-   SLURM stdout/stderr are re-homed to
+    `output/slurm_prints/<job_name>/<jobid>/<taskid>/`.
+
+# 1. Specify the Job
+
+Edit the list below to reflect the sweep you want to perform. Every
+section is commented; update values as needed before knitting or running
+the chunks interactively. Switch `grid_mode` to `"minimal"` for a
+smoke-test grid that touches each parameter value once instead of the
+full Cartesian product (only the first seed in `seeds` is used in that
+mode).
+
+```{r job-inputs}
+job_inputs <- list(
+  # REQUIRED: unique slug for this run
+  job_name = "susine_sim_grid_demo",
+
+  # Email used for SLURM notifications
+  email = "mgc5166@psu.edu",
+
+  # Root folder that already contains run_history/, slurm_output/, slurm_prints/
+  output_root = "output",
+
+  # Grid mode: "full" for Cartesian product, "minimal" for lightweight smoke tests
+  grid_mode = "minimal",
+
+  # Which predefined model variants to include (see use_case_catalog())
+  use_cases = c("a_i", "a_ii", "a_iii", "a_iv",
+                "b_i", "b_ii", "b_iii",
+                "c_i", "c_ii"),
+
+  # Simulation settings (vectorised; full factorial is taken)
+  L_grid = c(1, 5, 10, 20),
+  y_noise = c(0.50, 0.7, 0.9, 0.95),
+  p_star_grid = c(1, 5, 10, 20),
+
+  # Prior quality grid (percentages or fractions are accepted)
+  prior_noise_causal = c(0.25, 0.50, 0.75),
+  prior_noise_nonc = c(0.25, 0.5, 0.75),
+
+  # Seeds applied to every scenario/use-case combination
+  seeds = 1:10,
+
+  # How many seeds to bundle into one SLURM array task
+  seeds_per_task = 20,
+
+  # Data scenarios to include (currently "simulation_n3" only)
+  data_scenarios = c("simulation_n3"),
+
+  # Credible-set evaluation knobs
+  credible_set_rho = 0.95,
+  purity_threshold = 0.50
+)
+```
+
+Double-check that `job_name` is meaningful and unique – it determines
+where the job history and outputs are stored.
+
+# 2. Build the Run Tables
+
+Convert the user inputs into the tidy tables that power the task runner.
+
+```{r build-config}
+prior_quality <- prior_quality_grid(
+  causal_levels = job_inputs$prior_noise_causal,
+  noncausal_levels = job_inputs$prior_noise_nonc
+)
+
+job_config <- make_job_config(
+  job_name = job_inputs$job_name,
+  use_case_ids = job_inputs$use_cases,
+  L_grid = job_inputs$L_grid,
+  y_noise_grid = job_inputs$y_noise,
+  prior_quality = prior_quality,
+  p_star_grid = job_inputs$p_star_grid,
+  seeds = job_inputs$seeds,
+  data_scenarios = job_inputs$data_scenarios,
+  seeds_per_task = job_inputs$seeds_per_task,
+  email = job_inputs$email,
+  output_root = job_inputs$output_root,
+  credible_set_rho = job_inputs$credible_set_rho,
+  purity_threshold = job_inputs$purity_threshold,
+  grid_mode = job_inputs$grid_mode
+)
+```
+
+# 3. Inspect the Design
+
+## Selected Use Cases
+
+```{r preview-use-cases}
+job_config$tables$use_cases %>%
+  filter(use_case_id %in% job_inputs$use_cases) %>%
+  select(use_case_id, label, model_family, mu_strategy, sigma_strategy, extra_compute) %>%
+  kable()
+```
+
+## Scenario Grid
+
+Each row is a unique combination of simulation settings (before seeding
+and model selection).
+
+```{r preview-scenarios}
+job_config$tables$scenarios %>%
+  select(scenario_id, data_scenario, L, y_noise, p_star,
+         prior_noise_causal, prior_noise_nonc) %>%
+  kable()
+```
+
+## Run Counts and Tasks
+
+```{r preview-runs}
+summarise_job_config(job_config) %>%
+  arrange(use_case_id, L, y_noise, p_star) %>%
+  kable()
+```
+
+```{r preview-tasks}
+job_config$tables$tasks %>%
+  arrange(task_id) %>%
+  mutate(runs = runs_per_task) %>%
+  select(task_id, scenario_id, use_case_id, runs) %>%
+  kable()
+```
+
+Verify that the number of runs and tasks aligns with expectations. The
+total run count is:
+
+```{r total-counts}
+total_runs <- nrow(job_config$tables$runs)
+total_tasks <- nrow(job_config$tables$tasks)
+cat("Total model runs:", total_runs, "\n")
+cat("Total SLURM tasks:", total_tasks, "\n")
+```
+
+# 4. Write Control Files
+
+Set `commit_artifacts <- TRUE` once you are satisfied with the preview.
+The chunk below writes:
+
+1.  `output/run_history/<job_name>/job_config.json`
+2.  Supporting CSV tables (`run_table.csv`, `scenario_table.csv`,
+    `use_cases.csv`, `task_table.csv`)
+3.  `output/slurm_scripts/<job_name>.slurm`
+
+```{r write-artifacts}
+commit_artifacts <- FALSE  # flip to TRUE when ready
+
+if (commit_artifacts) {
+  artifacts <- write_job_artifacts(job_config)
+  str(artifacts)
+} else {
+  message("Artifacts not written (commit_artifacts is FALSE).")
+}
+```
+
+# 5. Next Steps
+
+1.  Inspect the generated SLURM script at
+    `output/slurm_scripts/<job_name>.slurm`.
+
+2.  Submit the array job from the cluster:
+
+    ``` bash
+    sbatch output/slurm_scripts/<job_name>.slurm
+    ```
+
+3.  Monitor progress via the structured logs in
+    `output/slurm_prints/<job_name>/`.
+
+4.  Each completed task populates
+    `output/slurm_output/<job_name>/task-XXX/`, including per-run
+    model/effect metrics, combined PIPs, truth tables, and saved fit
+    objects (`fit.rds` plus optional `subfits.rds` for model averaging
+    cases).
+
+Happy simulating!
