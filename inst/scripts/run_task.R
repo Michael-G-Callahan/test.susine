@@ -1,5 +1,8 @@
 #!/usr/bin/env Rscript
 
+library(devtools)
+devtools::load_all(".")
+
 parse_args <- function(args) {
   out <- list()
   i <- 1L
@@ -39,8 +42,6 @@ main <- function() {
   if (is.na(task_id)) {
     stop("task-id must be an integer.")
   }
-
-  suppressPackageStartupMessages(library(test_susine))
 
   if (is.null(config_path)) {
     config_path <- file.path(job_root, "run_history", job_name, "job_config.json")
