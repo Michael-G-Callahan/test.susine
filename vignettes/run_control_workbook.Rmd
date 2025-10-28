@@ -11,6 +11,10 @@ editor_options:
 ---
 
 ```{r setup, message=FALSE}
+here::i_am("vignettes/run_control_workbook.Rmd")
+library(here)
+here()
+
 library(devtools)
 devtools::load_all(".")
 
@@ -57,7 +61,7 @@ job_inputs <- list(
   email = "mgc5166@psu.edu",
 
   # Root folder that already contains run_history/, slurm_output/, slurm_prints/
-  output_root = "output",
+  output_root = here("output"),
 
   # Grid mode: "full" for Cartesian product, "minimal" for lightweight smoke tests
   grid_mode = "minimal",
@@ -79,8 +83,8 @@ job_inputs <- list(
   # Seeds applied to every scenario/use-case combination
   seeds = 1:10,
 
-  # How many seeds to bundle into one SLURM array task
-  seeds_per_task = 20,
+  # How many seeds to bundle into one SLURM array task (should be a divisor of length(seeds))
+  seeds_per_task = 10,
 
   # Data scenarios to include (currently "simulation_n3" only)
   data_scenarios = c("simulation_n3"),
@@ -182,15 +186,40 @@ The chunk below writes:
 3.  `output/slurm_scripts/<job_name>.slurm`
 
 ```{r write-artifacts}
-commit_artifacts <- FALSE  # flip to TRUE when ready
-
+commit_artifacts <- TRUE  # flip to TRUE when ready
+undebug(write_job_artifacts)
 if (commit_artifacts) {
-  artifacts <- write_job_artifacts(job_config)
+  artifacts <- write_job_artifacts(job_config, run_task_script = here("inst", "scripts", "run_task.R"))
   str(artifacts)
 } else {
   message("Artifacts not written (commit_artifacts is FALSE).")
 }
 ```
+```{r test the first run locally}
+# Define paths and arguments
+run_task_script <- "C:/Users/mgcal/OneDrive/Documents/School/Research/Genetics/cTWAS Generalization/Code/test_susine/inst/scripts/run_task.R"
+job_name <- "susine_sim_grid_demo"
+task_id <- "1" # Using the first task for testing
+job_root <- "C:/Users/mgcal/OneDrive/Documents/School/Research/Genetics/cTWAS Generalization/Code/test_susine/output"
+config_path <- "C:/Users/mgcal/OneDrive/Documents/School/Research/Genetics/cTWAS Generalization/Code/test_susine/output/run_history/susine_sim_grid_demo/job_config.json"
+
+# Construct the full command
+command <- sprintf(
+  'Rscript "%s" --job-name "%s" --task-id "%s" --job-root "%s" --config-path "%s"',
+  run_task_script,
+  job_name,
+  task_id,
+  job_root,
+  config_path
+)
+
+# Print the command to verify it's correct
+print(command)
+
+# Execute the command
+system(command)
+```
+
 
 # 5. Next Steps
 

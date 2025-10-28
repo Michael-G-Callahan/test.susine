@@ -1,0 +1,945 @@
+{
+  "job": {
+    "name": "susine_sim_grid_demo",
+    "email": "mgc5166@psu.edu",
+    "created_at": "2025-10-28 19:37:43 UTC",
+    "seeds_per_task": 10,
+    "credible_set_rho": 0.95,
+    "purity_threshold": 0.5,
+    "compute": {
+      "anneal": {
+        "anneal_start_T": 5,
+        "anneal_schedule_type": "geometric",
+        "anneal_burn_in": 5
+      },
+      "model_average": {
+        "n_inits": 5,
+        "init_sd": 0.05
+      }
+    },
+    "slurm": {
+      "time": "00:30:00",
+      "mem": "4G",
+      "cpus_per_task": 1,
+      "partition": {}
+    }
+  },
+  "paths": {
+    "output_root": "C:/Users/mgcal/OneDrive/Documents/School/Research/Genetics/cTWAS Generalization/Code/test_susine/output",
+    "run_history_dir": "C:/Users/mgcal/OneDrive/Documents/School/Research/Genetics/cTWAS Generalization/Code/test_susine/output/run_history/susine_sim_grid_demo",
+    "slurm_output_dir": "C:/Users/mgcal/OneDrive/Documents/School/Research/Genetics/cTWAS Generalization/Code/test_susine/output/slurm_output/susine_sim_grid_demo",
+    "slurm_prints_dir": "C:/Users/mgcal/OneDrive/Documents/School/Research/Genetics/cTWAS Generalization/Code/test_susine/output/slurm_prints",
+    "slurm_scripts_dir": "C:/Users/mgcal/OneDrive/Documents/School/Research/Genetics/cTWAS Generalization/Code/test_susine/output/slurm_scripts"
+  },
+  "tables": {
+    "scenarios": [
+      {
+        "data_scenario": "simulation_n3",
+        "L": 1,
+        "y_noise": 0.5,
+        "p_star": 1,
+        "prior_noise_causal": 0.25,
+        "prior_noise_nonc": 0.25,
+        "prior_quality_id": 1,
+        "scenario_id": 1
+      },
+      {
+        "data_scenario": "simulation_n3",
+        "L": 5,
+        "y_noise": 0.7,
+        "p_star": 5,
+        "prior_noise_causal": 0.5,
+        "prior_noise_nonc": 0.5,
+        "prior_quality_id": 2,
+        "scenario_id": 2
+      },
+      {
+        "data_scenario": "simulation_n3",
+        "L": 10,
+        "y_noise": 0.9,
+        "p_star": 10,
+        "prior_noise_causal": 0.75,
+        "prior_noise_nonc": 0.75,
+        "prior_quality_id": 3,
+        "scenario_id": 3
+      },
+      {
+        "data_scenario": "simulation_n3",
+        "L": 20,
+        "y_noise": 0.95,
+        "p_star": 20,
+        "prior_noise_causal": 0.25,
+        "prior_noise_nonc": 0.25,
+        "prior_quality_id": 4,
+        "scenario_id": 4
+      }
+    ],
+    "runs": [
+      {
+        "scenario_id": 1,
+        "use_case_id": "a_i",
+        "seed": 1,
+        "data_scenario": "simulation_n3",
+        "L": 1,
+        "y_noise": 0.5,
+        "p_star": 1,
+        "requires_prior_quality": false,
+        "run_id": 1,
+        "task_id": 1
+      },
+      {
+        "scenario_id": 1,
+        "use_case_id": "a_ii",
+        "seed": 1,
+        "data_scenario": "simulation_n3",
+        "L": 1,
+        "y_noise": 0.5,
+        "p_star": 1,
+        "requires_prior_quality": false,
+        "run_id": 2,
+        "task_id": 2
+      },
+      {
+        "scenario_id": 1,
+        "use_case_id": "a_iii",
+        "seed": 1,
+        "data_scenario": "simulation_n3",
+        "L": 1,
+        "y_noise": 0.5,
+        "p_star": 1,
+        "requires_prior_quality": false,
+        "run_id": 3,
+        "task_id": 3
+      },
+      {
+        "scenario_id": 1,
+        "use_case_id": "a_iv",
+        "seed": 1,
+        "data_scenario": "simulation_n3",
+        "L": 1,
+        "y_noise": 0.5,
+        "p_star": 1,
+        "requires_prior_quality": false,
+        "run_id": 4,
+        "task_id": 4
+      },
+      {
+        "scenario_id": 1,
+        "use_case_id": "b_i",
+        "seed": 1,
+        "data_scenario": "simulation_n3",
+        "L": 1,
+        "y_noise": 0.5,
+        "p_star": 1,
+        "prior_noise_causal": 0.25,
+        "prior_noise_nonc": 0.25,
+        "prior_quality_id": 1,
+        "requires_prior_quality": true,
+        "run_id": 5,
+        "task_id": 5
+      },
+      {
+        "scenario_id": 1,
+        "use_case_id": "b_ii",
+        "seed": 1,
+        "data_scenario": "simulation_n3",
+        "L": 1,
+        "y_noise": 0.5,
+        "p_star": 1,
+        "prior_noise_causal": 0.25,
+        "prior_noise_nonc": 0.25,
+        "prior_quality_id": 1,
+        "requires_prior_quality": true,
+        "run_id": 6,
+        "task_id": 6
+      },
+      {
+        "scenario_id": 1,
+        "use_case_id": "b_iii",
+        "seed": 1,
+        "data_scenario": "simulation_n3",
+        "L": 1,
+        "y_noise": 0.5,
+        "p_star": 1,
+        "prior_noise_causal": 0.25,
+        "prior_noise_nonc": 0.25,
+        "prior_quality_id": 1,
+        "requires_prior_quality": true,
+        "run_id": 7,
+        "task_id": 7
+      },
+      {
+        "scenario_id": 1,
+        "use_case_id": "c_i",
+        "seed": 1,
+        "data_scenario": "simulation_n3",
+        "L": 1,
+        "y_noise": 0.5,
+        "p_star": 1,
+        "requires_prior_quality": false,
+        "run_id": 8,
+        "task_id": 8
+      },
+      {
+        "scenario_id": 1,
+        "use_case_id": "c_ii",
+        "seed": 1,
+        "data_scenario": "simulation_n3",
+        "L": 1,
+        "y_noise": 0.5,
+        "p_star": 1,
+        "requires_prior_quality": false,
+        "run_id": 9,
+        "task_id": 9
+      },
+      {
+        "scenario_id": 2,
+        "use_case_id": "a_i",
+        "seed": 1,
+        "data_scenario": "simulation_n3",
+        "L": 5,
+        "y_noise": 0.7,
+        "p_star": 5,
+        "requires_prior_quality": false,
+        "run_id": 10,
+        "task_id": 10
+      },
+      {
+        "scenario_id": 2,
+        "use_case_id": "a_ii",
+        "seed": 1,
+        "data_scenario": "simulation_n3",
+        "L": 5,
+        "y_noise": 0.7,
+        "p_star": 5,
+        "requires_prior_quality": false,
+        "run_id": 11,
+        "task_id": 11
+      },
+      {
+        "scenario_id": 2,
+        "use_case_id": "a_iii",
+        "seed": 1,
+        "data_scenario": "simulation_n3",
+        "L": 5,
+        "y_noise": 0.7,
+        "p_star": 5,
+        "requires_prior_quality": false,
+        "run_id": 12,
+        "task_id": 12
+      },
+      {
+        "scenario_id": 2,
+        "use_case_id": "a_iv",
+        "seed": 1,
+        "data_scenario": "simulation_n3",
+        "L": 5,
+        "y_noise": 0.7,
+        "p_star": 5,
+        "requires_prior_quality": false,
+        "run_id": 13,
+        "task_id": 13
+      },
+      {
+        "scenario_id": 2,
+        "use_case_id": "b_i",
+        "seed": 1,
+        "data_scenario": "simulation_n3",
+        "L": 5,
+        "y_noise": 0.7,
+        "p_star": 5,
+        "prior_noise_causal": 0.5,
+        "prior_noise_nonc": 0.5,
+        "prior_quality_id": 2,
+        "requires_prior_quality": true,
+        "run_id": 14,
+        "task_id": 14
+      },
+      {
+        "scenario_id": 2,
+        "use_case_id": "b_ii",
+        "seed": 1,
+        "data_scenario": "simulation_n3",
+        "L": 5,
+        "y_noise": 0.7,
+        "p_star": 5,
+        "prior_noise_causal": 0.5,
+        "prior_noise_nonc": 0.5,
+        "prior_quality_id": 2,
+        "requires_prior_quality": true,
+        "run_id": 15,
+        "task_id": 15
+      },
+      {
+        "scenario_id": 2,
+        "use_case_id": "b_iii",
+        "seed": 1,
+        "data_scenario": "simulation_n3",
+        "L": 5,
+        "y_noise": 0.7,
+        "p_star": 5,
+        "prior_noise_causal": 0.5,
+        "prior_noise_nonc": 0.5,
+        "prior_quality_id": 2,
+        "requires_prior_quality": true,
+        "run_id": 16,
+        "task_id": 16
+      },
+      {
+        "scenario_id": 2,
+        "use_case_id": "c_i",
+        "seed": 1,
+        "data_scenario": "simulation_n3",
+        "L": 5,
+        "y_noise": 0.7,
+        "p_star": 5,
+        "requires_prior_quality": false,
+        "run_id": 17,
+        "task_id": 17
+      },
+      {
+        "scenario_id": 2,
+        "use_case_id": "c_ii",
+        "seed": 1,
+        "data_scenario": "simulation_n3",
+        "L": 5,
+        "y_noise": 0.7,
+        "p_star": 5,
+        "requires_prior_quality": false,
+        "run_id": 18,
+        "task_id": 18
+      },
+      {
+        "scenario_id": 3,
+        "use_case_id": "a_i",
+        "seed": 1,
+        "data_scenario": "simulation_n3",
+        "L": 10,
+        "y_noise": 0.9,
+        "p_star": 10,
+        "requires_prior_quality": false,
+        "run_id": 19,
+        "task_id": 19
+      },
+      {
+        "scenario_id": 3,
+        "use_case_id": "a_ii",
+        "seed": 1,
+        "data_scenario": "simulation_n3",
+        "L": 10,
+        "y_noise": 0.9,
+        "p_star": 10,
+        "requires_prior_quality": false,
+        "run_id": 20,
+        "task_id": 20
+      },
+      {
+        "scenario_id": 3,
+        "use_case_id": "a_iii",
+        "seed": 1,
+        "data_scenario": "simulation_n3",
+        "L": 10,
+        "y_noise": 0.9,
+        "p_star": 10,
+        "requires_prior_quality": false,
+        "run_id": 21,
+        "task_id": 21
+      },
+      {
+        "scenario_id": 3,
+        "use_case_id": "a_iv",
+        "seed": 1,
+        "data_scenario": "simulation_n3",
+        "L": 10,
+        "y_noise": 0.9,
+        "p_star": 10,
+        "requires_prior_quality": false,
+        "run_id": 22,
+        "task_id": 22
+      },
+      {
+        "scenario_id": 3,
+        "use_case_id": "b_i",
+        "seed": 1,
+        "data_scenario": "simulation_n3",
+        "L": 10,
+        "y_noise": 0.9,
+        "p_star": 10,
+        "prior_noise_causal": 0.75,
+        "prior_noise_nonc": 0.75,
+        "prior_quality_id": 3,
+        "requires_prior_quality": true,
+        "run_id": 23,
+        "task_id": 23
+      },
+      {
+        "scenario_id": 3,
+        "use_case_id": "b_ii",
+        "seed": 1,
+        "data_scenario": "simulation_n3",
+        "L": 10,
+        "y_noise": 0.9,
+        "p_star": 10,
+        "prior_noise_causal": 0.75,
+        "prior_noise_nonc": 0.75,
+        "prior_quality_id": 3,
+        "requires_prior_quality": true,
+        "run_id": 24,
+        "task_id": 24
+      },
+      {
+        "scenario_id": 3,
+        "use_case_id": "b_iii",
+        "seed": 1,
+        "data_scenario": "simulation_n3",
+        "L": 10,
+        "y_noise": 0.9,
+        "p_star": 10,
+        "prior_noise_causal": 0.75,
+        "prior_noise_nonc": 0.75,
+        "prior_quality_id": 3,
+        "requires_prior_quality": true,
+        "run_id": 25,
+        "task_id": 25
+      },
+      {
+        "scenario_id": 3,
+        "use_case_id": "c_i",
+        "seed": 1,
+        "data_scenario": "simulation_n3",
+        "L": 10,
+        "y_noise": 0.9,
+        "p_star": 10,
+        "requires_prior_quality": false,
+        "run_id": 26,
+        "task_id": 26
+      },
+      {
+        "scenario_id": 3,
+        "use_case_id": "c_ii",
+        "seed": 1,
+        "data_scenario": "simulation_n3",
+        "L": 10,
+        "y_noise": 0.9,
+        "p_star": 10,
+        "requires_prior_quality": false,
+        "run_id": 27,
+        "task_id": 27
+      },
+      {
+        "scenario_id": 4,
+        "use_case_id": "a_i",
+        "seed": 1,
+        "data_scenario": "simulation_n3",
+        "L": 20,
+        "y_noise": 0.95,
+        "p_star": 20,
+        "requires_prior_quality": false,
+        "run_id": 28,
+        "task_id": 28
+      },
+      {
+        "scenario_id": 4,
+        "use_case_id": "a_ii",
+        "seed": 1,
+        "data_scenario": "simulation_n3",
+        "L": 20,
+        "y_noise": 0.95,
+        "p_star": 20,
+        "requires_prior_quality": false,
+        "run_id": 29,
+        "task_id": 29
+      },
+      {
+        "scenario_id": 4,
+        "use_case_id": "a_iii",
+        "seed": 1,
+        "data_scenario": "simulation_n3",
+        "L": 20,
+        "y_noise": 0.95,
+        "p_star": 20,
+        "requires_prior_quality": false,
+        "run_id": 30,
+        "task_id": 30
+      },
+      {
+        "scenario_id": 4,
+        "use_case_id": "a_iv",
+        "seed": 1,
+        "data_scenario": "simulation_n3",
+        "L": 20,
+        "y_noise": 0.95,
+        "p_star": 20,
+        "requires_prior_quality": false,
+        "run_id": 31,
+        "task_id": 31
+      },
+      {
+        "scenario_id": 4,
+        "use_case_id": "b_i",
+        "seed": 1,
+        "data_scenario": "simulation_n3",
+        "L": 20,
+        "y_noise": 0.95,
+        "p_star": 20,
+        "prior_noise_causal": 0.25,
+        "prior_noise_nonc": 0.25,
+        "prior_quality_id": 4,
+        "requires_prior_quality": true,
+        "run_id": 32,
+        "task_id": 32
+      },
+      {
+        "scenario_id": 4,
+        "use_case_id": "b_ii",
+        "seed": 1,
+        "data_scenario": "simulation_n3",
+        "L": 20,
+        "y_noise": 0.95,
+        "p_star": 20,
+        "prior_noise_causal": 0.25,
+        "prior_noise_nonc": 0.25,
+        "prior_quality_id": 4,
+        "requires_prior_quality": true,
+        "run_id": 33,
+        "task_id": 33
+      },
+      {
+        "scenario_id": 4,
+        "use_case_id": "b_iii",
+        "seed": 1,
+        "data_scenario": "simulation_n3",
+        "L": 20,
+        "y_noise": 0.95,
+        "p_star": 20,
+        "prior_noise_causal": 0.25,
+        "prior_noise_nonc": 0.25,
+        "prior_quality_id": 4,
+        "requires_prior_quality": true,
+        "run_id": 34,
+        "task_id": 34
+      },
+      {
+        "scenario_id": 4,
+        "use_case_id": "c_i",
+        "seed": 1,
+        "data_scenario": "simulation_n3",
+        "L": 20,
+        "y_noise": 0.95,
+        "p_star": 20,
+        "requires_prior_quality": false,
+        "run_id": 35,
+        "task_id": 35
+      },
+      {
+        "scenario_id": 4,
+        "use_case_id": "c_ii",
+        "seed": 1,
+        "data_scenario": "simulation_n3",
+        "L": 20,
+        "y_noise": 0.95,
+        "p_star": 20,
+        "requires_prior_quality": false,
+        "run_id": 36,
+        "task_id": 36
+      }
+    ],
+    "tasks": [
+      {
+        "scenario_id": 1,
+        "use_case_id": "a_i",
+        "task_local": 1,
+        "task_id": 1,
+        "runs_per_task": 1
+      },
+      {
+        "scenario_id": 1,
+        "use_case_id": "a_ii",
+        "task_local": 1,
+        "task_id": 2,
+        "runs_per_task": 1
+      },
+      {
+        "scenario_id": 1,
+        "use_case_id": "a_iii",
+        "task_local": 1,
+        "task_id": 3,
+        "runs_per_task": 1
+      },
+      {
+        "scenario_id": 1,
+        "use_case_id": "a_iv",
+        "task_local": 1,
+        "task_id": 4,
+        "runs_per_task": 1
+      },
+      {
+        "scenario_id": 1,
+        "use_case_id": "b_i",
+        "task_local": 1,
+        "task_id": 5,
+        "runs_per_task": 1
+      },
+      {
+        "scenario_id": 1,
+        "use_case_id": "b_ii",
+        "task_local": 1,
+        "task_id": 6,
+        "runs_per_task": 1
+      },
+      {
+        "scenario_id": 1,
+        "use_case_id": "b_iii",
+        "task_local": 1,
+        "task_id": 7,
+        "runs_per_task": 1
+      },
+      {
+        "scenario_id": 1,
+        "use_case_id": "c_i",
+        "task_local": 1,
+        "task_id": 8,
+        "runs_per_task": 1
+      },
+      {
+        "scenario_id": 1,
+        "use_case_id": "c_ii",
+        "task_local": 1,
+        "task_id": 9,
+        "runs_per_task": 1
+      },
+      {
+        "scenario_id": 2,
+        "use_case_id": "a_i",
+        "task_local": 1,
+        "task_id": 10,
+        "runs_per_task": 1
+      },
+      {
+        "scenario_id": 2,
+        "use_case_id": "a_ii",
+        "task_local": 1,
+        "task_id": 11,
+        "runs_per_task": 1
+      },
+      {
+        "scenario_id": 2,
+        "use_case_id": "a_iii",
+        "task_local": 1,
+        "task_id": 12,
+        "runs_per_task": 1
+      },
+      {
+        "scenario_id": 2,
+        "use_case_id": "a_iv",
+        "task_local": 1,
+        "task_id": 13,
+        "runs_per_task": 1
+      },
+      {
+        "scenario_id": 2,
+        "use_case_id": "b_i",
+        "task_local": 1,
+        "task_id": 14,
+        "runs_per_task": 1
+      },
+      {
+        "scenario_id": 2,
+        "use_case_id": "b_ii",
+        "task_local": 1,
+        "task_id": 15,
+        "runs_per_task": 1
+      },
+      {
+        "scenario_id": 2,
+        "use_case_id": "b_iii",
+        "task_local": 1,
+        "task_id": 16,
+        "runs_per_task": 1
+      },
+      {
+        "scenario_id": 2,
+        "use_case_id": "c_i",
+        "task_local": 1,
+        "task_id": 17,
+        "runs_per_task": 1
+      },
+      {
+        "scenario_id": 2,
+        "use_case_id": "c_ii",
+        "task_local": 1,
+        "task_id": 18,
+        "runs_per_task": 1
+      },
+      {
+        "scenario_id": 3,
+        "use_case_id": "a_i",
+        "task_local": 1,
+        "task_id": 19,
+        "runs_per_task": 1
+      },
+      {
+        "scenario_id": 3,
+        "use_case_id": "a_ii",
+        "task_local": 1,
+        "task_id": 20,
+        "runs_per_task": 1
+      },
+      {
+        "scenario_id": 3,
+        "use_case_id": "a_iii",
+        "task_local": 1,
+        "task_id": 21,
+        "runs_per_task": 1
+      },
+      {
+        "scenario_id": 3,
+        "use_case_id": "a_iv",
+        "task_local": 1,
+        "task_id": 22,
+        "runs_per_task": 1
+      },
+      {
+        "scenario_id": 3,
+        "use_case_id": "b_i",
+        "task_local": 1,
+        "task_id": 23,
+        "runs_per_task": 1
+      },
+      {
+        "scenario_id": 3,
+        "use_case_id": "b_ii",
+        "task_local": 1,
+        "task_id": 24,
+        "runs_per_task": 1
+      },
+      {
+        "scenario_id": 3,
+        "use_case_id": "b_iii",
+        "task_local": 1,
+        "task_id": 25,
+        "runs_per_task": 1
+      },
+      {
+        "scenario_id": 3,
+        "use_case_id": "c_i",
+        "task_local": 1,
+        "task_id": 26,
+        "runs_per_task": 1
+      },
+      {
+        "scenario_id": 3,
+        "use_case_id": "c_ii",
+        "task_local": 1,
+        "task_id": 27,
+        "runs_per_task": 1
+      },
+      {
+        "scenario_id": 4,
+        "use_case_id": "a_i",
+        "task_local": 1,
+        "task_id": 28,
+        "runs_per_task": 1
+      },
+      {
+        "scenario_id": 4,
+        "use_case_id": "a_ii",
+        "task_local": 1,
+        "task_id": 29,
+        "runs_per_task": 1
+      },
+      {
+        "scenario_id": 4,
+        "use_case_id": "a_iii",
+        "task_local": 1,
+        "task_id": 30,
+        "runs_per_task": 1
+      },
+      {
+        "scenario_id": 4,
+        "use_case_id": "a_iv",
+        "task_local": 1,
+        "task_id": 31,
+        "runs_per_task": 1
+      },
+      {
+        "scenario_id": 4,
+        "use_case_id": "b_i",
+        "task_local": 1,
+        "task_id": 32,
+        "runs_per_task": 1
+      },
+      {
+        "scenario_id": 4,
+        "use_case_id": "b_ii",
+        "task_local": 1,
+        "task_id": 33,
+        "runs_per_task": 1
+      },
+      {
+        "scenario_id": 4,
+        "use_case_id": "b_iii",
+        "task_local": 1,
+        "task_id": 34,
+        "runs_per_task": 1
+      },
+      {
+        "scenario_id": 4,
+        "use_case_id": "c_i",
+        "task_local": 1,
+        "task_id": 35,
+        "runs_per_task": 1
+      },
+      {
+        "scenario_id": 4,
+        "use_case_id": "c_ii",
+        "task_local": 1,
+        "task_id": 36,
+        "runs_per_task": 1
+      }
+    ],
+    "use_cases": [
+      {
+        "use_case_id": "a_i",
+        "group": "1a",
+        "label": "SuSiE - naive sigma, naive mu",
+        "model_family": "susie",
+        "mu_strategy": "naive",
+        "sigma_strategy": "naive",
+        "auto_scale_mu": false,
+        "auto_scale_sigma": false,
+        "estimate_sigma": false,
+        "estimate_prior": false,
+        "extra_compute": "none",
+        "requires_prior_quality": false,
+        "requires_annotations": false
+      },
+      {
+        "use_case_id": "a_ii",
+        "group": "1a",
+        "label": "SuSiE - EB sigma, naive mu",
+        "model_family": "susie",
+        "mu_strategy": "naive",
+        "sigma_strategy": "eb_sigma",
+        "auto_scale_mu": false,
+        "auto_scale_sigma": false,
+        "estimate_sigma": true,
+        "estimate_prior": true,
+        "extra_compute": "none",
+        "requires_prior_quality": false,
+        "requires_annotations": false
+      },
+      {
+        "use_case_id": "a_iii",
+        "group": "1a",
+        "label": "SuSiNE - EB mu, naive sigma",
+        "model_family": "susine",
+        "mu_strategy": "eb_mu",
+        "sigma_strategy": "naive",
+        "prior_update_method": "mean",
+        "auto_scale_mu": true,
+        "auto_scale_sigma": false,
+        "estimate_sigma": false,
+        "estimate_prior": false,
+        "extra_compute": "none",
+        "requires_prior_quality": false,
+        "requires_annotations": true
+      },
+      {
+        "use_case_id": "a_iv",
+        "group": "1a",
+        "label": "SuSiNE - EB mu & sigma",
+        "model_family": "susine",
+        "mu_strategy": "eb_mu",
+        "sigma_strategy": "eb_sigma",
+        "prior_update_method": "both",
+        "auto_scale_mu": true,
+        "auto_scale_sigma": true,
+        "estimate_sigma": false,
+        "estimate_prior": false,
+        "extra_compute": "none",
+        "requires_prior_quality": false,
+        "requires_annotations": true
+      },
+      {
+        "use_case_id": "b_i",
+        "group": "1b",
+        "label": "SuSiE + functional sigma (mu=0)",
+        "model_family": "susie",
+        "mu_strategy": "naive",
+        "sigma_strategy": "functional",
+        "auto_scale_mu": false,
+        "auto_scale_sigma": false,
+        "estimate_sigma": true,
+        "estimate_prior": true,
+        "extra_compute": "none",
+        "requires_prior_quality": true,
+        "requires_annotations": true
+      },
+      {
+        "use_case_id": "b_ii",
+        "group": "1b",
+        "label": "SuSiNE + functional mu (sigma EB)",
+        "model_family": "susine",
+        "mu_strategy": "functional",
+        "sigma_strategy": "eb_sigma",
+        "prior_update_method": "var",
+        "auto_scale_mu": true,
+        "auto_scale_sigma": false,
+        "estimate_sigma": false,
+        "estimate_prior": false,
+        "extra_compute": "none",
+        "requires_prior_quality": true,
+        "requires_annotations": true
+      },
+      {
+        "use_case_id": "b_iii",
+        "group": "1b",
+        "label": "SuSiNE + functional mu & sigma",
+        "model_family": "susine",
+        "mu_strategy": "functional",
+        "sigma_strategy": "functional",
+        "prior_update_method": "none",
+        "auto_scale_mu": true,
+        "auto_scale_sigma": true,
+        "estimate_sigma": false,
+        "estimate_prior": false,
+        "extra_compute": "none",
+        "requires_prior_quality": true,
+        "requires_annotations": true
+      },
+      {
+        "use_case_id": "c_i",
+        "group": "1c",
+        "label": "SuSiNE + tempering/annealing",
+        "model_family": "susine",
+        "mu_strategy": "naive",
+        "sigma_strategy": "naive",
+        "prior_update_method": "none",
+        "auto_scale_mu": false,
+        "auto_scale_sigma": false,
+        "estimate_sigma": false,
+        "estimate_prior": false,
+        "extra_compute": "anneal",
+        "requires_prior_quality": false,
+        "requires_annotations": true
+      },
+      {
+        "use_case_id": "c_ii",
+        "group": "1c",
+        "label": "SuSiNE + model averaging (multi-init)",
+        "model_family": "susine",
+        "mu_strategy": "naive",
+        "sigma_strategy": "naive",
+        "prior_update_method": "none",
+        "auto_scale_mu": false,
+        "auto_scale_sigma": false,
+        "estimate_sigma": false,
+        "estimate_prior": false,
+        "extra_compute": "model_avg",
+        "requires_prior_quality": false,
+        "requires_annotations": true
+      }
+    ]
+  }
+}

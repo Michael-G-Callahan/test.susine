@@ -307,7 +307,7 @@ make_job_config <- function(job_name,
 #' @return List with paths to the serialized artifacts.
 #' @export
 write_job_artifacts <- function(job_config,
-                                run_task_script = file.path("inst", "scripts", "run_task.R")) {
+                                run_task_script) {
   paths <- job_config$paths
   ensure_dir(paths$output_root)
   ensure_dir(paths$run_history_dir)

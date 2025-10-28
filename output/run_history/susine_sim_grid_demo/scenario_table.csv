@@ -1,0 +1,5 @@
+data_scenario,L,y_noise,p_star,prior_noise_causal,prior_noise_nonc,prior_quality_id,scenario_id
+simulation_n3,1,0.5,1,0.25,0.25,1,1
+simulation_n3,5,0.7,5,0.5,0.5,2,2
+simulation_n3,10,0.9,10,0.75,0.75,3,3
+simulation_n3,20,0.95,20,0.25,0.25,4,4
