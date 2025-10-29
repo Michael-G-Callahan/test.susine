@@ -1,8 +1,9 @@
 {
   "job": {
     "name": "susine_sim_grid_demo",
+    "HPC": true,
     "email": "mgc5166@psu.edu",
-    "created_at": "2025-10-29 18:00:50 UTC",
+    "created_at": "2025-10-29 20:36:35 UTC",
     "seeds_per_task": 10,
     "credible_set_rho": 0.95,
     "purity_threshold": 0.5,
@@ -19,17 +20,17 @@
     },
     "slurm": {
       "time": "00:30:00",
-      "mem": "4G",
+      "mem": "2G",
       "cpus_per_task": 1,
       "partition": {}
     }
   },
   "paths": {
-    "output_root": "C:/Users/mgcal/OneDrive/Documents/School/Research/Genetics/cTWAS Generalization/Code/test_susine/output",
-    "run_history_dir": "C:/Users/mgcal/OneDrive/Documents/School/Research/Genetics/cTWAS Generalization/Code/test_susine/output/run_history/susine_sim_grid_demo",
-    "slurm_output_dir": "C:/Users/mgcal/OneDrive/Documents/School/Research/Genetics/cTWAS Generalization/Code/test_susine/output/slurm_output/susine_sim_grid_demo",
-    "slurm_prints_dir": "C:/Users/mgcal/OneDrive/Documents/School/Research/Genetics/cTWAS Generalization/Code/test_susine/output/slurm_prints",
-    "slurm_scripts_dir": "C:/Users/mgcal/OneDrive/Documents/School/Research/Genetics/cTWAS Generalization/Code/test_susine/output/slurm_scripts"
+    "output_root": "/storage/work/mgc5166/SuSiNE - 2.0/test_susine/output",
+    "run_history_dir": "/storage/work/mgc5166/SuSiNE - 2.0/test_susine/output/run_history/susine_sim_grid_demo",
+    "slurm_output_dir": "/storage/work/mgc5166/SuSiNE - 2.0/test_susine/output/slurm_output/susine_sim_grid_demo",
+    "slurm_prints_dir": "/storage/work/mgc5166/SuSiNE - 2.0/test_susine/output/slurm_prints",
+    "slurm_scripts_dir": "/storage/work/mgc5166/SuSiNE - 2.0/test_susine/output/slurm_scripts"
   },
   "tables": {
     "scenarios": [

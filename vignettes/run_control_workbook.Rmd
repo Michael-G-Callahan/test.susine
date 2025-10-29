@@ -57,6 +57,8 @@ mode).
 job_inputs <- list(
   # REQUIRED: unique slug for this run
   job_name = "susine_sim_grid_demo",
+  
+  HPC = TRUE,
 
   # Email used for SLURM notifications
   email = "mgc5166@psu.edu",
@@ -111,6 +113,7 @@ prior_quality <- prior_quality_grid(
 
 job_config <- make_job_config(
   job_name = job_inputs$job_name,
+  HPC = job_inputs$HPC,
   use_case_ids = job_inputs$use_cases,
   L_grid = job_inputs$L_grid,
   y_noise_grid = job_inputs$y_noise,
@@ -188,7 +191,7 @@ The chunk below writes:
 
 ```{r write-artifacts}
 commit_artifacts <- TRUE  # flip to TRUE when ready
-undebug(write_job_artifacts)
+
 if (commit_artifacts) {
   artifacts <- write_job_artifacts(job_config, run_task_script = here("inst", "scripts", "run_task.R"))
   str(artifacts)
@@ -198,11 +201,11 @@ if (commit_artifacts) {
 ```
 ```{r test the first run locally}
 # Define paths and arguments
-run_task_script <- "C:/Users/mgcal/OneDrive/Documents/School/Research/Genetics/cTWAS Generalization/Code/test_susine/inst/scripts/run_task.R"
+run_task_script <- here("inst", "scripts", "run_task.R")
 job_name <- "susine_sim_grid_demo"
 task_id <- "1" # Using the first task for testing
-job_root <- "C:/Users/mgcal/OneDrive/Documents/School/Research/Genetics/cTWAS Generalization/Code/test_susine/output"
-config_path <- "C:/Users/mgcal/OneDrive/Documents/School/Research/Genetics/cTWAS Generalization/Code/test_susine/output/run_history/susine_sim_grid_demo/job_config.json"
+job_root <- here("output")
+config_path <- here("output", "run_history", "susine_sim_grid_demo", "job_config.json")
 
 #Confirm default config path works
 # command <- sprintf(
@@ -234,8 +237,8 @@ system(command)
 ```{r debug run_task function}
 job_name   <- "susine_sim_grid_demo"
 task_id    <- 30L
-job_root   <- "C:/Users/mgcal/OneDrive/Documents/School/Research/Genetics/cTWAS Generalization/Code/test_susine/output"
-config_path <- "C:/Users/mgcal/OneDrive/Documents/School/Research/Genetics/cTWAS Generalization/Code/test_susine/output/run_history/susine_sim_grid_demo/job_config.json"
+job_root   <- here("output")
+config_path <- here("output", "run_history", "susine_sim_grid_demo", "job_config.json")
 quiet      <- FALSE
 
 options(error = quote(browser(skipCalls = 1)))  # drop into the debugger on error
@@ -254,9 +257,9 @@ test_susine::run_task(
 ```
 
 ```{r run-all-tasks-locally}
-run_task_script <- "C:/Users/mgcal/OneDrive/Documents/School/Research/Genetics/cTWAS Generalization/Code/test_susine/inst/scripts/run_task.R"
+run_task_script <- here("inst", "scripts", "run_task.R")
 job_name <- "susine_sim_grid_demo"
-job_root <- "C:/Users/mgcal/OneDrive/Documents/School/Research/Genetics/cTWAS Generalization/Code/test_susine/output"
+job_root <- here("output")
 config_path <- file.path(job_root, "run_history", job_name, "job_config.json")
 
 cfg <- jsonlite::read_json(config_path, simplifyVector = TRUE)

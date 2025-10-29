@@ -230,6 +230,7 @@ assign_task_ids <- function(runs, seeds_per_task) {
 #' @return Job configuration list ready to serialize.
 #' @export
 make_job_config <- function(job_name,
+                            HPC=FALSE,
                             use_case_ids,
                             L_grid,
                             y_noise_grid,
@@ -268,6 +269,7 @@ make_job_config <- function(job_name,
   list(
     job = list(
       name = job_name,
+      HPC = HPC,
       email = email,
       created_at = timestamp_utc(),
       seeds_per_task = seeds_per_task,
@@ -278,8 +280,8 @@ make_job_config <- function(job_name,
         model_average = model_average_settings
       ),
       slurm = list(
-        time = "00:30:00",
-        mem = "4G",
+        time = "01:00:00",
+        mem = "2G",
         cpus_per_task = 1,
         partition = NULL
       )
@@ -371,6 +373,17 @@ render_slurm_script <- function(job_config, run_task_script) {
     NULL
   }
 
+  hpc_setup <- if (isTRUE(job$HPC)) {
+    c(
+      "module load r",
+      "",
+      'export R_LIBS_USER="/storage/home/mgc5166/R/x86_64-pc-linux-gnu-library/4.3"',
+      ""
+    )
+  } else {
+    NULL
+  }
+
   script <- c(
     "#!/bin/bash",
     sprintf("#SBATCH --job-name=%s", job$name),
@@ -381,8 +394,8 @@ render_slurm_script <- function(job_config, run_task_script) {
     sprintf("#SBATCH --mail-user=%s", job$email),
     "#SBATCH --mail-type=BEGIN,END,FAIL",
     partition_line,
-    sprintf("#SBATCH --output=%s/%%x-%%j-%%a.out", paths$slurm_prints_dir),
-    sprintf("#SBATCH --error=%s/%%x-%%j-%%a.err", paths$slurm_prints_dir),
+    sprintf('#SBATCH --output="%s/%%x-%%j-%%a.out"', paths$slurm_prints_dir),
+    sprintf('#SBATCH --error="%s/%%x-%%j-%%a.err"', paths$slurm_prints_dir),
     "",
     "set -euo pipefail",
     "",
@@ -391,6 +404,7 @@ render_slurm_script <- function(job_config, run_task_script) {
     sprintf("CONFIG_PATH=\"%s\"", normalizePath(file.path(paths$run_history_dir, "job_config.json"), winslash = "/", mustWork = FALSE)),
     sprintf("RUN_TASK_SCRIPT=\"%s\"", normalizePath(run_task_script, winslash = "/", mustWork = FALSE)),
     "",
+    hpc_setup,
     "Rscript \"$RUN_TASK_SCRIPT\" \\",
     "  --job-name \"$SLURM_JOB_NAME\" \\",
     "  --task-id \"$SLURM_ARRAY_TASK_ID\" \\",
