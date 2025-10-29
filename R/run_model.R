@@ -125,7 +125,7 @@ generate_data_for_run <- function(run_row, job_config) {
       y_noise = as.numeric(run_row$y_noise),
       prior_noise_causal = as.numeric(run_row$prior_noise_causal),
       prior_noise_nonc = as.numeric(run_row$prior_noise_nonc),
-      effect_sd = run_row$effect_sd %||% 1
+      effect_sd = run_row[["effect_sd"]] %||% 1
     )
     return(generate_simulation_data(spec))
   }
@@ -133,105 +133,9 @@ generate_data_for_run <- function(run_row, job_config) {
   stop(sprintf("Unsupported data_scenario '%s'.", scenario))
 }
 
-#' Dispatch use-case execution based on metadata.
+#' Fit a use case with the susine backend, handling optional annealing/model averaging.
 #' @keywords internal
 run_use_case <- function(use_case, run_row, data_bundle, job_config) {
-  family <- use_case$model_family[[1]]
-  if (identical(family, "susie")) {
-    fit <- run_susie_case(use_case, run_row, data_bundle)
-    return(list(fit = fit, extra = NULL))
-  }
-  if (identical(family, "susine")) {
-    return(run_susine_case(use_case, run_row, data_bundle, job_config))
-  }
-  stop(sprintf("Unknown model_family '%s'.", family))
-}
-
-#' Run a SuSiE use case.
-#' @keywords internal
-run_susie_case <- function(use_case, run_row, data_bundle) {
-  L <- as.integer(run_row$L)
-  prior_var <- stats::var(data_bundle$beta[data_bundle$beta != 0])
-  if (is.na(prior_var) || prior_var <= 0) {
-    prior_var <- 1
-  }
-  prior_weights <- if (identical(use_case$sigma_strategy[[1]], "functional")) {
-    data_bundle$prior_inclusion_weights
-  } else {
-    rep(1 / length(data_bundle$beta), length(data_bundle$beta))
-  }
-  scaled_prior_variance <- rep(prior_var, L)
-  estimate_prior <- isTRUE(use_case$estimate_prior[[1]])
-  estimate_sigma <- isTRUE(use_case$estimate_sigma[[1]])
-
-  fit <- susieR::susie(
-    X = data_bundle$X,
-    y = data_bundle$y,
-    L = L,
-    prior_weights = prior_weights,
-    estimate_prior_variance = estimate_prior,
-    estimate_residual_variance = estimate_sigma,
-    scaled_prior_variance = if (estimate_prior) NULL else scaled_prior_variance,
-    residual_variance = if (estimate_sigma) NULL else data_bundle$sigma2,
-    standardize = TRUE
-  )
-
-  susie_to_susine_like(fit, data_bundle$X, data_bundle$y, metadata = list(
-    use_case_id = use_case$use_case_id[[1]],
-    label = use_case$label[[1]]
-  ))
-}
-
-#' Convert a susieR fit to the structure expected by evaluate_model.
-#' @keywords internal
-susie_to_susine_like <- function(fit, X, y, metadata = NULL) {
-  std_coef <- colSums(fit$alpha * fit$mu)
-  mu2 <- fit$mu2
-  # mu2 can be NULL in some versions; approximate if needed.
-  if (is.null(mu2)) {
-    mu2 <- fit$mu^2 + 1e-6
-  }
-  b_hat <- fit$alpha * fit$mu
-  b2_hat <- fit$alpha * mu2
-
-  coef_vec <- tryCatch({
-    as.numeric(susieR::coef(fit))
-  }, error = function(e) {
-    std_coef
-  })
-  if (length(coef_vec) == ncol(X) + 1) {
-    intercept <- coef_vec[1]
-    beta_hat <- coef_vec[-1]
-  } else {
-    intercept <- 0
-    beta_hat <- coef_vec
-  }
-  fitted_y <- intercept + as.vector(X %*% beta_hat)
-
-  list(
-    priors = list(),
-    effect_fits = list(
-      alpha = fit$alpha,
-      b_hat = b_hat,
-      b_2_hat = b2_hat,
-      KL = fit$KL
-    ),
-    model_fit = list(
-      PIPs = fit$pip,
-      std_coef = std_coef,
-      coef = beta_hat,
-      fitted_y = fitted_y,
-      sigma_2 = rep(fit$sigma2, length.out = length(fit$elbo)),
-      elbo = fit$elbo
-    ),
-    settings = list(L = fit$L),
-    metadata = metadata
-  )
-}
-
-#' Run a SuSiNE use case, handling optional annealing/model averaging.
-#' @keywords internal
-run_susine_case <- function(use_case, run_row, data_bundle, job_config) {
   L <- as.integer(run_row$L)
   mu_strategy <- use_case$mu_strategy[[1]]
   sigma_strategy <- use_case$sigma_strategy[[1]]
@@ -241,6 +145,9 @@ run_susine_case <- function(use_case, run_row, data_bundle, job_config) {
   pi_weights <- if (identical(sigma_strategy, "functional")) data_bundle$prior_inclusion_weights else NULL
 
   extra <- use_case$extra_compute[[1]]
+  if (length(extra) && is.na(extra)) {
+    extra <- NULL
+  }
   anneal <- job_config$job$compute$anneal
   model_avg <- job_config$job$compute$model_average
 
@@ -252,10 +159,14 @@ run_susine_case <- function(use_case, run_row, data_bundle, job_config) {
     sigma_0_2 = sigma_0_2,
     prior_inclusion_weights = pi_weights,
     prior_update_method = use_case$prior_update_method[[1]] %||% "none",
-    auto_scale_mu_0 = resolve_flag(use_case$auto_scale_mu[[1]], FALSE),
-    auto_scale_sigma_0_2 = resolve_flag(use_case$auto_scale_sigma[[1]], FALSE),
     verbose = FALSE
   )
+  if (resolve_flag(use_case$auto_scale_mu[[1]], FALSE)) {
+    base_args$auto_scale_mu_0 <- TRUE
+  }
+  if (resolve_flag(use_case$auto_scale_sigma[[1]], FALSE)) {
+    base_args$auto_scale_sigma_0_2 <- TRUE
+  }
 
   if (identical(extra, "anneal")) {
     base_args$anneal_start_T <- anneal$anneal_start_T %||% 5
@@ -265,6 +176,7 @@ run_susine_case <- function(use_case, run_row, data_bundle, job_config) {
 
   if (!identical(extra, "model_avg")) {
     fit <- do.call(susine::susine, base_args)
+    fit$settings$L <- fit$settings$L %||% L
     fit$metadata <- list(
       use_case_id = use_case$use_case_id[[1]],
       label = use_case$label[[1]]
@@ -290,6 +202,7 @@ run_susine_case <- function(use_case, run_row, data_bundle, job_config) {
   agg_fit <- subfits[[1]]
   agg_fit$model_fit$PIPs <- colMeans(pips_mat)
   agg_fit$model_fit$coef <- colMeans(coef_mat)
+  agg_fit$settings$L <- agg_fit$settings$L %||% L
   agg_fit$model_fit$std_coef <- colMeans(vapply(subfits, function(sf) sf$model_fit$std_coef, numeric(ncol(coef_mat))))
   agg_fit$model_fit$fitted_y <- as.vector(data_bundle$X %*% agg_fit$model_fit$coef)
   agg_fit$metadata <- list(
@@ -317,16 +230,16 @@ write_run_outputs <- function(run_row,
   run_dir <- file.path(task_dir, run_id)
   ensure_dir(run_dir)
 
-  model_metrics <- dplyr::bind_rows(
-    dplyr::mutate(evaluation$model_unfiltered, filtering = "unfiltered"),
-    dplyr::mutate(evaluation$model_filtered, filtering = "purity_filtered")
-  ) %>%
-    dplyr::mutate(
-      run_id = run_row$run_id,
-      task_id = run_row$task_id,
-      use_case_id = run_row$use_case_id,
-      seed = run_row$seed
-    )
+  model_metrics <- dplyr::mutate(
+    dplyr::bind_rows(
+      dplyr::mutate(evaluation$model_unfiltered, filtering = "unfiltered"),
+      dplyr::mutate(evaluation$model_filtered, filtering = "purity_filtered")
+    ),
+    run_id = run_row$run_id,
+    task_id = run_row$task_id,
+    use_case_id = run_row$use_case_id,
+    seed = run_row$seed
+  )
   readr::write_csv(model_metrics, file.path(run_dir, "model_metrics.csv"))
 
   format_effects <- function(effects_df, label) {

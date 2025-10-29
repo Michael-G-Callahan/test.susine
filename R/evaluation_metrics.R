@@ -41,18 +41,27 @@ get_credible_set <- function(alpha, rho = 0.95) {
 }
 
 # Purity = min absolute pairwise correlation inside a CS (size-1 -> 1, empty -> NA)
-cs_purity_min_abs <- function(X, idx) {
+cs_purity_min_abs <- function(X, idx, cache = NULL, cor_mat = NULL) {
   k <- length(idx)
   if (k == 0) return(NA_real_)
   if (k == 1) return(1.0)
-  C <- suppressWarnings(cor(X[, idx, drop = FALSE], use = "pairwise.complete.obs"))
-  min(abs(C[upper.tri(C)]))
-}
-
-# Combine per-effect PIPs to single per-variable PIP: 1 - prod_l (1 - α_lj)
-combine_pips <- function(alpha_mat) {
-  one_minus <- pmax(0, 1 - alpha_mat)
-  as.numeric(1 - apply(one_minus, 2, prod))
+  key <- NULL
+  if (!is.null(cache)) {
+    key <- paste(idx, collapse = ",")
+    if (exists(key, envir = cache, inherits = FALSE)) {
+      return(get(key, envir = cache, inherits = FALSE))
+    }
+  }
+  if (!is.null(cor_mat)) {
+    sub_cor <- cor_mat[idx, idx, drop = FALSE]
+  } else {
+    sub_cor <- suppressWarnings(cor(X[, idx, drop = FALSE], use = "pairwise.complete.obs"))
+  }
+  purity <- min(abs(sub_cor[upper.tri(sub_cor)]))
+  if (!is.null(cache) && length(key)) {
+    assign(key, purity, envir = cache)
+  }
+  purity
 }
 
 # Overlap rate among a list of index vectors (fraction of CS pairs that overlap)
@@ -69,10 +78,11 @@ overlap_rate_from_sets <- function(list_of_sets) {
 }
 
 # Per-effect metrics given one alpha vector
-cs_metrics_one_effect <- function(alpha_vec, X, causal_idx, rho = 0.95) {
+cs_metrics_one_effect <- function(alpha_vec, X, causal_idx, rho = 0.95,
+                                  purity_cache = NULL, cor_mat = NULL) {
   cs <- get_credible_set(alpha_vec, rho)
   size <- length(cs)
-  purity <- cs_purity_min_abs(X, cs)
+  purity <- cs_purity_min_abs(X, cs, cache = purity_cache, cor_mat = cor_mat)
   coverage <- as.integer(size > 0 && any(cs %in% causal_idx))
   list(indices = cs, size = size, purity = purity, coverage = coverage)
 }
@@ -150,12 +160,32 @@ evaluate_model <- function(fit, X, y = NULL, causal_idx = integer(0),
                            compute_curves = TRUE) {
   stopifnot(is.matrix(X))
   L <- fit$settings$L
-  A <- fit$effect_fits$alpha   # L x p
+  A <- fit$effect_fits$alpha
+  if (is.list(A)) {
+    A <- do.call(rbind, A)
+  }
+  A <- as.matrix(A)
+  if (!nrow(A) || !ncol(A)) {
+    stop("effect_fits$alpha has invalid dimensions.")
+  }
+  if (nrow(A) != L) {
+    L <- nrow(A)
+  }
+
+  purity_cache <- new.env(parent = emptyenv())
+  cor_mat <- suppressWarnings(cor(X, use = "pairwise.complete.obs"))
 
   # Per-effect CS & metrics (UNFILTERED)
   eff <- vector("list", L)
   for (l in seq_len(L)) {
-    eff[[l]] <- cs_metrics_one_effect(A[l, ], X, causal_idx, rho = rho)
+    eff[[l]] <- cs_metrics_one_effect(
+      alpha_vec = A[l, ],
+      X = X,
+      causal_idx = causal_idx,
+      rho = rho,
+      purity_cache = purity_cache,
+      cor_mat = cor_mat
+    )
   }
 
   effects_unfiltered <- data.frame(
@@ -191,7 +221,7 @@ evaluate_model <- function(fit, X, y = NULL, causal_idx = integer(0),
   L_eff_filtered   <- nrow(effects_filtered)
 
   # Variable-level PIPs (combined across effects)
-  combined_pip <- combine_pips(A)
+  combined_pip <- fit$model_fit$PIPs
 
   # -------- classification-style metrics vs ground truth (if provided) --------
   labels <- rep(0L, ncol(X))

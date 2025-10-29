@@ -15,7 +15,6 @@ URL: https://github.com/Michael-G-Callahan/test.susine
 BugReports: https://github.com/Michael-G-Callahan/test.susine/issues
 Imports:
     susine,
-    susieR,
     dplyr,
     tidyr,
     purrr,
@@ -24,7 +23,8 @@ Imports:
     readr,
     matrixStats
 Suggests:
-    knitr
+    knitr,
+    susieR
 VignetteBuilder: knitr
 Remotes: 
     ../susine

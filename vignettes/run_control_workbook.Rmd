@@ -17,6 +17,7 @@ here()
 
 library(devtools)
 devtools::load_all(".")
+devtools::load_all("../../susine")
 
 library(dplyr)
 library(tidyr)
@@ -203,6 +204,16 @@ task_id <- "1" # Using the first task for testing
 job_root <- "C:/Users/mgcal/OneDrive/Documents/School/Research/Genetics/cTWAS Generalization/Code/test_susine/output"
 config_path <- "C:/Users/mgcal/OneDrive/Documents/School/Research/Genetics/cTWAS Generalization/Code/test_susine/output/run_history/susine_sim_grid_demo/job_config.json"
 
+#Confirm default config path works
+# command <- sprintf(
+#   'Rscript "%s" --job-name "%s" --task-id "%s" --job-root "%s"',
+#   run_task_script,
+#   job_name,
+#   task_id,
+#   job_root
+# )
+
+
 # Construct the full command
 command <- sprintf(
   'Rscript "%s" --job-name "%s" --task-id "%s" --job-root "%s" --config-path "%s"',
@@ -220,6 +231,53 @@ print(command)
 system(command)
 ```
 
+```{r debug run_task function}
+job_name   <- "susine_sim_grid_demo"
+task_id    <- 30L
+job_root   <- "C:/Users/mgcal/OneDrive/Documents/School/Research/Genetics/cTWAS Generalization/Code/test_susine/output"
+config_path <- "C:/Users/mgcal/OneDrive/Documents/School/Research/Genetics/cTWAS Generalization/Code/test_susine/output/run_history/susine_sim_grid_demo/job_config.json"
+quiet      <- FALSE
+
+options(error = quote(browser(skipCalls = 1)))  # drop into the debugger on error
+on.exit(options(error = NULL), add = TRUE)
+
+# debugonce(run_task)
+
+test_susine::run_task(
+  job_name   = job_name,
+  task_id    = task_id,
+  job_root   = job_root,
+  config_path = config_path,
+  quiet      = quiet
+)
+
+```
+
+```{r run-all-tasks-locally}
+run_task_script <- "C:/Users/mgcal/OneDrive/Documents/School/Research/Genetics/cTWAS Generalization/Code/test_susine/inst/scripts/run_task.R"
+job_name <- "susine_sim_grid_demo"
+job_root <- "C:/Users/mgcal/OneDrive/Documents/School/Research/Genetics/cTWAS Generalization/Code/test_susine/output"
+config_path <- file.path(job_root, "run_history", job_name, "job_config.json")
+
+cfg <- jsonlite::read_json(config_path, simplifyVector = TRUE)
+task_ids <- sort(unique(cfg$tables$runs$task_id))
+
+for (task_id in task_ids) {
+  cmd <- sprintf(
+    'Rscript "%s" --job-name "%s" --task-id "%s" --job-root "%s" --config-path "%s"',
+    run_task_script,
+    job_name,
+    task_id,
+    job_root,
+    config_path
+  )
+  message("→ Running task ", task_id, ": ", cmd)
+  status <- system(cmd)
+  if (status != 0) {
+    stop("Task ", task_id, " exited with status ", status, call. = FALSE)
+  }
+}
+```
 
 # 5. Next Steps
 
