@@ -199,6 +199,7 @@ if (commit_artifacts) {
   message("Artifacts not written (commit_artifacts is FALSE).")
 }
 ```
+
 ```{r test the first run locally}
 # Define paths and arguments
 run_task_script <- here("inst", "scripts", "run_task.R")

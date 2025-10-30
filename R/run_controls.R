@@ -300,6 +300,7 @@ make_job_config <- function(job_name,
     paths = list(
       output_root = output_root,
       run_history_dir = file.path(output_root, "run_history", job_name),
+      temp_dir = file.path(output_root, "temp", job_name),
       slurm_output_dir = file.path(output_root, "slurm_output"),
       slurm_prints_dir = file.path(output_root, "slurm_prints"),
       slurm_scripts_dir = file.path(output_root, "slurm_scripts")
@@ -322,12 +323,15 @@ write_job_artifacts <- function(job_config,
                                 run_task_script) {
   paths <- job_config$paths
   ensure_dir(paths$output_root)
-  ensure_dir(paths$run_history_dir)
   ensure_dir(paths$slurm_output_dir)
   ensure_dir(paths$slurm_prints_dir)
   ensure_dir(paths$slurm_scripts_dir)
+  
+  # Clear temp directory and create fresh
+  unlink(paths$temp_dir, recursive = TRUE)
+  ensure_dir(paths$temp_dir)
 
-  job_json_path <- file.path(paths$run_history_dir, "job_config.json")
+  job_json_path <- file.path(paths$temp_dir, "job_config.json")
   jsonlite::write_json(
     job_config,
     path = job_json_path,
@@ -336,16 +340,16 @@ write_job_artifacts <- function(job_config,
     pretty = TRUE
   )
 
-  run_table_path <- file.path(paths$run_history_dir, "run_table.csv")
+  run_table_path <- file.path(paths$temp_dir, "run_table.csv")
   readr::write_csv(job_config$tables$runs, run_table_path)
 
-  scenario_path <- file.path(paths$run_history_dir, "scenario_table.csv")
+  scenario_path <- file.path(paths$temp_dir, "scenario_table.csv")
   readr::write_csv(job_config$tables$scenarios, scenario_path)
 
-  use_case_path <- file.path(paths$run_history_dir, "use_cases.csv")
+  use_case_path <- file.path(paths$temp_dir, "use_cases.csv")
   readr::write_csv(job_config$tables$use_cases, use_case_path)
 
-  task_path <- file.path(paths$run_history_dir, "task_table.csv")
+  task_path <- file.path(paths$temp_dir, "task_table.csv")
   readr::write_csv(job_config$tables$tasks, task_path)
 
   slurm_path <- file.path(paths$slurm_scripts_dir, paste0(job_config$job$name, ".slurm"))
@@ -416,10 +420,12 @@ render_slurm_script <- function(job_config, run_task_script) {
     "set -euo pipefail",
     "",
     sprintf('JOB_ROOT="%s"', normalizePath(paths$output_root, winslash = "/", mustWork = FALSE)),
-    sprintf('CONFIG_PATH="%s"', normalizePath(file.path(paths$run_history_dir, "job_config.json"), winslash = "/", mustWork = FALSE)),
+    sprintf('CONFIG_PATH="%s"', normalizePath(file.path(paths$temp_dir, "job_config.json"), winslash = "/", mustWork = FALSE)),
     sprintf('RUN_TASK_SCRIPT="%s"', normalizePath(run_task_script, winslash = "/", mustWork = FALSE)),
     sprintf('SLURM_PRINTS_BASE="%s"', normalizePath(paths$slurm_prints_dir, winslash = "/", mustWork = FALSE)),
     sprintf('SLURM_OUTPUT_BASE="%s"', normalizePath(paths$slurm_output_dir, winslash = "/", mustWork = FALSE)),
+    sprintf('TEMP_DIR="%s"', normalizePath(paths$temp_dir, winslash = "/", mustWork = FALSE)),
+    sprintf('RUN_HISTORY_BASE="%s"', normalizePath(file.path(paths$output_root, "run_history"), winslash = "/", mustWork = FALSE)),
     "",
     "# --- identifiers (stable across Slurm versions) ---",
     'JOBNAME="${SLURM_JOB_NAME}"',
@@ -460,6 +466,14 @@ render_slurm_script <- function(job_config, run_task_script) {
     "",
     "# --- site/module setup ---",
     hpc_setup,
+    "",
+    "# --- task 1 copies run_history from temp to permanent location ---",
+    'if [ "${TASK_ID}" = "1" ]; then',
+    '  FINAL_HISTORY_DIR="${RUN_HISTORY_BASE}/${JOBNAME}/${PARENT_ID}"',
+    '  mkdir -p "${FINAL_HISTORY_DIR}"',
+    '  cp "${TEMP_DIR}"/* "${FINAL_HISTORY_DIR}/"',
+    '  echo "[$(date -Is)] Task 1: copied run_history from temp to ${FINAL_HISTORY_DIR}"',
+    'fi',
     "",
     "# --- run task ---",
     'Rscript "$RUN_TASK_SCRIPT" \\',

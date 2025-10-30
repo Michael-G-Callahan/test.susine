@@ -12,11 +12,13 @@
 
 set -euo pipefail
 
-JOB_ROOT="/storage/work/mgc5166/SuSiNE - 2.0/test_susine/output"
-CONFIG_PATH="/storage/work/mgc5166/SuSiNE - 2.0/test_susine/output/run_history/susine_sim_grid_demo/job_config.json"
-RUN_TASK_SCRIPT="/storage/work/mgc5166/SuSiNE - 2.0/test_susine/inst/scripts/run_task.R"
-SLURM_PRINTS_BASE="/storage/work/mgc5166/SuSiNE - 2.0/test_susine/output/slurm_prints"
-SLURM_OUTPUT_BASE="/storage/work/mgc5166/SuSiNE - 2.0/test_susine/output/slurm_output"
+JOB_ROOT="C:/Users/mgcal/OneDrive/Documents/School/Research/Genetics/cTWAS Generalization/Code/test_susine/output"
+CONFIG_PATH="C:/Users/mgcal/OneDrive/Documents/School/Research/Genetics/cTWAS Generalization/Code/test_susine/output/temp/susine_sim_grid_demo/job_config.json"
+RUN_TASK_SCRIPT="C:/Users/mgcal/OneDrive/Documents/School/Research/Genetics/cTWAS Generalization/Code/test_susine/inst/scripts/run_task.R"
+SLURM_PRINTS_BASE="C:/Users/mgcal/OneDrive/Documents/School/Research/Genetics/cTWAS Generalization/Code/test_susine/output/slurm_prints"
+SLURM_OUTPUT_BASE="C:/Users/mgcal/OneDrive/Documents/School/Research/Genetics/cTWAS Generalization/Code/test_susine/output/slurm_output"
+TEMP_DIR="C:/Users/mgcal/OneDrive/Documents/School/Research/Genetics/cTWAS Generalization/Code/test_susine/output/temp/susine_sim_grid_demo"
+RUN_HISTORY_BASE="C:/Users/mgcal/OneDrive/Documents/School/Research/Genetics/cTWAS Generalization/Code/test_susine/output/run_history"
 
 # --- identifiers (stable across Slurm versions) ---
 JOBNAME="${SLURM_JOB_NAME}"
@@ -60,6 +62,14 @@ module load r
 
 export R_LIBS_USER="/storage/home/mgc5166/R/x86_64-pc-linux-gnu-library/4.3"
 
+
+# --- task 1 copies run_history from temp to permanent location ---
+if [ "${TASK_ID}" = "1" ]; then
+  FINAL_HISTORY_DIR="${RUN_HISTORY_BASE}/${JOBNAME}/${PARENT_ID}"
+  mkdir -p "${FINAL_HISTORY_DIR}"
+  cp "${TEMP_DIR}"/* "${FINAL_HISTORY_DIR}/"
+  echo "[$(date -Is)] Task 1: copied run_history from temp to ${FINAL_HISTORY_DIR}"
+fi
 
 # --- run task ---
 Rscript "$RUN_TASK_SCRIPT" \
