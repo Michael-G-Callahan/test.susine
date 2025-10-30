@@ -220,14 +220,25 @@ run_use_case <- function(use_case, run_row, data_bundle, job_config) {
 
 #' Persist metrics, truth tables, and model fits for a run.
 #' @keywords internal
+#' Persist metrics, truth tables, and model fits for a run.
+#' @keywords internal
 write_run_outputs <- function(run_row,
                               job_config,
                               evaluation,
                               data_bundle,
                               model_result) {
-  run_id <- sprintf("run-%05d", run_row$run_id)
-  task_dir <- file.path(job_config$paths$slurm_output_dir, sprintf("task-%03d", run_row$task_id))
-  run_dir <- file.path(task_dir, run_id)
+
+  # Prefer the directory exported by the Slurm wrapper; fallback to old layout
+  env_out <- Sys.getenv("SUSINE_OUTPUT_DIR", unset = "")
+  if (nzchar(env_out)) {
+    run_dir <- env_out
+  } else {
+    # old behavior
+    run_id  <- sprintf("run-%05d", run_row$run_id)
+    task_dir <- file.path(job_config$paths$slurm_output_dir,
+                          sprintf("task-%03d", run_row$task_id))
+    run_dir <- file.path(task_dir, run_id)
+  }
   ensure_dir(run_dir)
 
   model_metrics <- dplyr::mutate(
@@ -243,9 +254,7 @@ write_run_outputs <- function(run_row,
   readr::write_csv(model_metrics, file.path(run_dir, "model_metrics.csv"))
 
   format_effects <- function(effects_df, label) {
-    if (is.null(effects_df) || !nrow(effects_df)) {
-      return(NULL)
-    }
+    if (is.null(effects_df) || !nrow(effects_df)) return(NULL)
     indices <- vapply(effects_df$indices, function(idx) paste(idx, collapse = " "), character(1))
     dplyr::mutate(
       dplyr::select(effects_df, -indices),
@@ -257,6 +266,7 @@ write_run_outputs <- function(run_row,
       seed = run_row$seed
     )
   }
+
   effect_metrics <- dplyr::bind_rows(
     format_effects(evaluation$effects_unfiltered, "unfiltered"),
     format_effects(evaluation$effects_filtered, "purity_filtered")

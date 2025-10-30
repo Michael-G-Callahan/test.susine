@@ -1,38 +1,71 @@
 #!/bin/bash
 #SBATCH --job-name=susine_sim_grid_demo
 #SBATCH --array=1-36
-#SBATCH --time=00:30:00
+#SBATCH --time=01:00:00
 #SBATCH --mem=2G
 #SBATCH --cpus-per-task=1
 #SBATCH --mail-user=mgc5166@psu.edu
 #SBATCH --mail-type=BEGIN,END,FAIL
-#SBATCH --output="/storage/work/mgc5166/SuSiNE - 2.0/test_susine/output/slurm_prints/%x-%j-%a.out"
-#SBATCH --error="/storage/work/mgc5166/SuSiNE - 2.0/test_susine/output/slurm_prints/%x-%j-%a.err"
+# Log to /dev/null; we'll redirect ourselves below.
+#SBATCH --output=/dev/null
+#SBATCH --error=/dev/null
 
 set -euo pipefail
 
-echo "[$(date -Is)] Starting task ${SLURM_ARRAY_TASK_ID} for job ${SLURM_JOB_NAME}"
 JOB_ROOT="/storage/work/mgc5166/SuSiNE - 2.0/test_susine/output"
 CONFIG_PATH="/storage/work/mgc5166/SuSiNE - 2.0/test_susine/output/run_history/susine_sim_grid_demo/job_config.json"
 RUN_TASK_SCRIPT="/storage/work/mgc5166/SuSiNE - 2.0/test_susine/inst/scripts/run_task.R"
+SLURM_PRINTS_BASE="/storage/work/mgc5166/SuSiNE - 2.0/test_susine/output/slurm_prints"
+SLURM_OUTPUT_BASE="/storage/work/mgc5166/SuSiNE - 2.0/test_susine/output/slurm_output"
 
+# --- identifiers (stable across Slurm versions) ---
+JOBNAME="${SLURM_JOB_NAME}"
+PARENT_ID="${SLURM_ARRAY_JOB_ID:-$SLURM_JOB_ID}"   # parent array ID if array, else job id
+TASK_ID="${SLURM_ARRAY_TASK_ID:-0}"
+PAD=4
+SHARD_SIZE_OUTPUT=1000
+SHARD_SIZE_PRINTS=1000
+
+# --- compute shard dir for PRINTS ---
+if [ "${SHARD_SIZE_PRINTS}" -gt 0 ]; then
+  TI="${TASK_ID}"; if [ "${TI}" -le 0 ]; then TI=1; fi
+  SHARD_IDX_PRINTS=$(( (TI - 1) / SHARD_SIZE_PRINTS ))
+  SHARD_DIR_PRINTS="$(printf "shard-%03d" "${SHARD_IDX_PRINTS}")"
+  PRINTS_DIR="${SLURM_PRINTS_BASE}/${JOBNAME}/${PARENT_ID}/${SHARD_DIR_PRINTS}"
+else
+  PRINTS_DIR="${SLURM_PRINTS_BASE}/${JOBNAME}/${PARENT_ID}"
+fi
+mkdir -p "${PRINTS_DIR}"
+
+# Redirect logs (after dirs exist) — one file per task
+exec >"${PRINTS_DIR}/${TASK_ID}.out" 2>"${PRINTS_DIR}/${TASK_ID}.err"
+echo "[$(date -Is)] Starting task ${TASK_ID} for job ${JOBNAME} (parent ${PARENT_ID})"
+
+# --- per-task output dir for R (parent-ID bucketed, padded, optional sharding) ---
+# run-XXXX (padded by PAD) derived from the array task id
+RUN_DIR="$(printf "run-%0*d" "${PAD}" "${TASK_ID}")"
+if [ "${SHARD_SIZE_OUTPUT}" -gt 0 ]; then
+  TI2="${TASK_ID}"; if [ "${TI2}" -le 0 ]; then TI2=1; fi
+  SHARD_IDX_OUTPUT=$(( (TI2 - 1) / SHARD_SIZE_OUTPUT ))
+  SHARD_DIR_OUTPUT="$(printf "shard-%03d" "${SHARD_IDX_OUTPUT}")"
+  FINAL_OUTPUT_DIR="${SLURM_OUTPUT_BASE}/${JOBNAME}/${PARENT_ID}/${SHARD_DIR_OUTPUT}/${RUN_DIR}"
+else
+  FINAL_OUTPUT_DIR="${SLURM_OUTPUT_BASE}/${JOBNAME}/${PARENT_ID}/${RUN_DIR}"
+fi
+mkdir -p "${FINAL_OUTPUT_DIR}"
+export SUSINE_OUTPUT_DIR="${FINAL_OUTPUT_DIR}"
+
+# --- site/module setup ---
 module load r
 
 export R_LIBS_USER="/storage/home/mgc5166/R/x86_64-pc-linux-gnu-library/4.3"
 
+
+# --- run task ---
 Rscript "$RUN_TASK_SCRIPT" \
-  --job-name "$SLURM_JOB_NAME" \
-  --task-id "$SLURM_ARRAY_TASK_ID" \
+  --job-name "$JOBNAME" \
+  --task-id "$TASK_ID" \
   --job-root "$JOB_ROOT" \
   --config-path "$CONFIG_PATH"
 
-# Reorganize stdout/stderr into nested folders
-RAW_OUT_FILE="${SLURM_JOB_NAME}-${SLURM_JOB_ID}-${SLURM_ARRAY_TASK_ID}.out"
-RAW_ERR_FILE="${SLURM_JOB_NAME}-${SLURM_JOB_ID}-${SLURM_ARRAY_TASK_ID}.err"
-RAW_OUT_PATH="/storage/work/mgc5166/SuSiNE - 2.0/test_susine/output/slurm_prints/${RAW_OUT_FILE}"
-RAW_ERR_PATH="/storage/work/mgc5166/SuSiNE - 2.0/test_susine/output/slurm_prints/${RAW_ERR_FILE}"
-FINAL_DIR="/storage/work/mgc5166/SuSiNE - 2.0/test_susine/output/slurm_prints/${SLURM_JOB_NAME}/${SLURM_JOB_ID}/${SLURM_ARRAY_TASK_ID}"
-mkdir -p "$FINAL_DIR"
-if [ -f "$RAW_OUT_PATH" ]; then mv "$RAW_OUT_PATH" "$FINAL_DIR/stdout.out"; fi
-if [ -f "$RAW_ERR_PATH" ]; then mv "$RAW_ERR_PATH" "$FINAL_DIR/stderr.err"; fi
-echo "[$(date -Is)] Completed task ${SLURM_ARRAY_TASK_ID}"
+echo "[$(date -Is)] Completed task ${TASK_ID}"

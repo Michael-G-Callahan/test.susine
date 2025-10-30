@@ -230,7 +230,7 @@ assign_task_ids <- function(runs, seeds_per_task) {
 #' @return Job configuration list ready to serialize.
 #' @export
 make_job_config <- function(job_name,
-                            HPC=FALSE,
+                            HPC = FALSE,
                             use_case_ids,
                             L_grid,
                             y_noise_grid,
@@ -244,6 +244,10 @@ make_job_config <- function(job_name,
                             credible_set_rho = 0.95,
                             purity_threshold = 0.5,
                             grid_mode = c("full", "minimal"),
+                            # NEW: sharding + padding controls (can be overridden per call)
+                            shard_size_output = 1000L,  # 0 disables sharding for slurm_output
+                            shard_size_prints = 1000L,  # 0 disables sharding for slurm_prints
+                            pad_width = NULL,           # NULL => renderer auto-computes from n_tasks
                             anneal_settings = list(
                               anneal_start_T = 5,
                               anneal_schedule_type = "geometric",
@@ -253,7 +257,9 @@ make_job_config <- function(job_name,
                               n_inits = 5,
                               init_sd = 0.05
                             )) {
+
   grid_mode <- match.arg(grid_mode)
+
   tables <- make_run_tables(
     use_case_ids = use_case_ids,
     L_grid = L_grid,
@@ -264,6 +270,7 @@ make_job_config <- function(job_name,
     data_scenarios = data_scenarios,
     grid_mode = grid_mode
   )
+
   runs_tasks <- assign_task_ids(tables$runs, seeds_per_task = seeds_per_task)
 
   list(
@@ -283,13 +290,17 @@ make_job_config <- function(job_name,
         time = "01:00:00",
         mem = "2G",
         cpus_per_task = 1,
-        partition = NULL
+        partition = NULL,
+        # NEW: plumbed through for render_slurm_script()
+        shard_size_output = as.integer(shard_size_output),
+        shard_size_prints = as.integer(shard_size_prints),
+        pad_width = if (is.null(pad_width)) NULL else as.integer(pad_width)
       )
     ),
     paths = list(
       output_root = output_root,
       run_history_dir = file.path(output_root, "run_history", job_name),
-      slurm_output_dir = file.path(output_root, "slurm_output", job_name),
+      slurm_output_dir = file.path(output_root, "slurm_output"),
       slurm_prints_dir = file.path(output_root, "slurm_prints"),
       slurm_scripts_dir = file.path(output_root, "slurm_scripts")
     ),
@@ -301,7 +312,6 @@ make_job_config <- function(job_name,
     )
   )
 }
-
 #' Write job configuration and scripts to disk.
 #'
 #' @param job_config Output of [make_job_config()].
@@ -361,11 +371,11 @@ write_job_artifacts <- function(job_config,
 #' @return Character vector of script lines.
 #' @keywords internal
 render_slurm_script <- function(job_config, run_task_script) {
-  job <- job_config$job
-  paths <- job_config$paths
-  tasks <- job_config$tables$tasks
+  job    <- job_config$job
+  paths  <- job_config$paths
+  tasks  <- job_config$tables$tasks
   n_tasks <- nrow(tasks)
-  slurm <- job$slurm
+  slurm  <- job$slurm
 
   partition_line <- if (!is.null(slurm$partition)) {
     paste0("#SBATCH --partition=", slurm$partition)
@@ -384,6 +394,11 @@ render_slurm_script <- function(job_config, run_task_script) {
     NULL
   }
 
+  # ---- padding & sharding config ----
+  pad_width <- max(4L, ceiling(log10(max(1L, n_tasks))))  # e.g., 120000 -> 6
+  shard_size_output <- job$slurm$shard_size_output %||% 1000L  # for slurm_output
+  shard_size_prints <- job$slurm$shard_size_prints %||% 1000L  # for slurm_prints
+
   script <- c(
     "#!/bin/bash",
     sprintf("#SBATCH --job-name=%s", job$name),
@@ -394,33 +409,66 @@ render_slurm_script <- function(job_config, run_task_script) {
     sprintf("#SBATCH --mail-user=%s", job$email),
     "#SBATCH --mail-type=BEGIN,END,FAIL",
     partition_line,
-    sprintf('#SBATCH --output="%s/%%x-%%j-%%a.out"', paths$slurm_prints_dir),
-    sprintf('#SBATCH --error="%s/%%x-%%j-%%a.err"', paths$slurm_prints_dir),
+    "# Log to /dev/null; we'll redirect ourselves below.",
+    "#SBATCH --output=/dev/null",
+    "#SBATCH --error=/dev/null",
     "",
     "set -euo pipefail",
     "",
-    "echo \"[$(date -Is)] Starting task ${SLURM_ARRAY_TASK_ID} for job ${SLURM_JOB_NAME}\"",
-    sprintf("JOB_ROOT=\"%s\"", normalizePath(paths$output_root, winslash = "/", mustWork = FALSE)),
-    sprintf("CONFIG_PATH=\"%s\"", normalizePath(file.path(paths$run_history_dir, "job_config.json"), winslash = "/", mustWork = FALSE)),
-    sprintf("RUN_TASK_SCRIPT=\"%s\"", normalizePath(run_task_script, winslash = "/", mustWork = FALSE)),
+    sprintf('JOB_ROOT="%s"', normalizePath(paths$output_root, winslash = "/", mustWork = FALSE)),
+    sprintf('CONFIG_PATH="%s"', normalizePath(file.path(paths$run_history_dir, "job_config.json"), winslash = "/", mustWork = FALSE)),
+    sprintf('RUN_TASK_SCRIPT="%s"', normalizePath(run_task_script, winslash = "/", mustWork = FALSE)),
+    sprintf('SLURM_PRINTS_BASE="%s"', normalizePath(paths$slurm_prints_dir, winslash = "/", mustWork = FALSE)),
+    sprintf('SLURM_OUTPUT_BASE="%s"', normalizePath(paths$slurm_output_dir, winslash = "/", mustWork = FALSE)),
     "",
+    "# --- identifiers (stable across Slurm versions) ---",
+    'JOBNAME="${SLURM_JOB_NAME}"',
+    'PARENT_ID="${SLURM_ARRAY_JOB_ID:-$SLURM_JOB_ID}"   # parent array ID if array, else job id',
+    'TASK_ID="${SLURM_ARRAY_TASK_ID:-0}"',
+    sprintf('PAD=%d', as.integer(pad_width)),
+    sprintf('SHARD_SIZE_OUTPUT=%d', as.integer(shard_size_output)),
+    sprintf('SHARD_SIZE_PRINTS=%d', as.integer(shard_size_prints)),
+    "",
+    "# --- compute shard dir for PRINTS ---",
+    'if [ "${SHARD_SIZE_PRINTS}" -gt 0 ]; then',
+    '  TI="${TASK_ID}"; if [ "${TI}" -le 0 ]; then TI=1; fi',
+    '  SHARD_IDX_PRINTS=$(( (TI - 1) / SHARD_SIZE_PRINTS ))',
+    '  SHARD_DIR_PRINTS="$(printf "shard-%03d" "${SHARD_IDX_PRINTS}")"',
+    '  PRINTS_DIR="${SLURM_PRINTS_BASE}/${JOBNAME}/${PARENT_ID}/${SHARD_DIR_PRINTS}"',
+    'else',
+    '  PRINTS_DIR="${SLURM_PRINTS_BASE}/${JOBNAME}/${PARENT_ID}"',
+    'fi',
+    'mkdir -p "${PRINTS_DIR}"',
+    "",
+    "# Redirect logs (after dirs exist) — one file per task",
+    'exec >"${PRINTS_DIR}/${TASK_ID}.out" 2>"${PRINTS_DIR}/${TASK_ID}.err"',
+    'echo "[$(date -Is)] Starting task ${TASK_ID} for job ${JOBNAME} (parent ${PARENT_ID})"',
+    "",
+    "# --- per-task output dir for R (parent-ID bucketed, padded, optional sharding) ---",
+    '# run-XXXX (padded by PAD) derived from the array task id',
+    'RUN_DIR="$(printf "run-%0*d" "${PAD}" "${TASK_ID}")"',
+    'if [ "${SHARD_SIZE_OUTPUT}" -gt 0 ]; then',
+    '  TI2="${TASK_ID}"; if [ "${TI2}" -le 0 ]; then TI2=1; fi',
+    '  SHARD_IDX_OUTPUT=$(( (TI2 - 1) / SHARD_SIZE_OUTPUT ))',
+    '  SHARD_DIR_OUTPUT="$(printf "shard-%03d" "${SHARD_IDX_OUTPUT}")"',
+    '  FINAL_OUTPUT_DIR="${SLURM_OUTPUT_BASE}/${JOBNAME}/${PARENT_ID}/${SHARD_DIR_OUTPUT}/${RUN_DIR}"',
+    'else',
+    '  FINAL_OUTPUT_DIR="${SLURM_OUTPUT_BASE}/${JOBNAME}/${PARENT_ID}/${RUN_DIR}"',
+    'fi',
+    'mkdir -p "${FINAL_OUTPUT_DIR}"',
+    'export SUSINE_OUTPUT_DIR="${FINAL_OUTPUT_DIR}"',
+    "",
+    "# --- site/module setup ---",
     hpc_setup,
-    "Rscript \"$RUN_TASK_SCRIPT\" \\",
-    "  --job-name \"$SLURM_JOB_NAME\" \\",
-    "  --task-id \"$SLURM_ARRAY_TASK_ID\" \\",
-    "  --job-root \"$JOB_ROOT\" \\",
-    "  --config-path \"$CONFIG_PATH\"",
     "",
-    "# Reorganize stdout/stderr into nested folders",
-    "RAW_OUT_FILE=\"${SLURM_JOB_NAME}-${SLURM_JOB_ID}-${SLURM_ARRAY_TASK_ID}.out\"",
-    "RAW_ERR_FILE=\"${SLURM_JOB_NAME}-${SLURM_JOB_ID}-${SLURM_ARRAY_TASK_ID}.err\"",
-    sprintf("RAW_OUT_PATH=\"%s/${RAW_OUT_FILE}\"", paths$slurm_prints_dir),
-    sprintf("RAW_ERR_PATH=\"%s/${RAW_ERR_FILE}\"", paths$slurm_prints_dir),
-    sprintf("FINAL_DIR=\"%s/${SLURM_JOB_NAME}/${SLURM_JOB_ID}/${SLURM_ARRAY_TASK_ID}\"", paths$slurm_prints_dir),
-    "mkdir -p \"$FINAL_DIR\"",
-    "if [ -f \"$RAW_OUT_PATH\" ]; then mv \"$RAW_OUT_PATH\" \"$FINAL_DIR/stdout.out\"; fi",
-    "if [ -f \"$RAW_ERR_PATH\" ]; then mv \"$RAW_ERR_PATH\" \"$FINAL_DIR/stderr.err\"; fi",
-    "echo \"[$(date -Is)] Completed task ${SLURM_ARRAY_TASK_ID}\""
+    "# --- run task ---",
+    'Rscript "$RUN_TASK_SCRIPT" \\',
+    '  --job-name "$JOBNAME" \\',
+    '  --task-id "$TASK_ID" \\',
+    '  --job-root "$JOB_ROOT" \\',
+    '  --config-path "$CONFIG_PATH"',
+    "",
+    'echo "[$(date -Is)] Completed task ${TASK_ID}"'
   )
   script[!is.na(script)]
 }
