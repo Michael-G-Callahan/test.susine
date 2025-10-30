@@ -34,15 +34,12 @@ array script, and helper R script.
 
 The generated artifacts follow the repository layout:
 
--   `output/run_history/<job_name>` – immutable record of job
-    parameters.
+-   `output/temp/<job_name>` – temporary staging for run configuration (cleared each write).
+-   `output/run_history/<job_name>/<parent_job_id>` – permanent immutable record copied from temp after first SLURM task.
 -   `output/slurm_scripts/<job_name>.slurm` – submission script.
--   `inst/scripts/run_task.R` – task runner referenced by each SLURM
-    array task.
--   During execution, results land in
-    `output/slurm_output/<job_name>/task-XXX/…`.
--   SLURM stdout/stderr are re-homed to
-    `output/slurm_prints/<job_name>/<jobid>/<taskid>/`.
+-   `inst/scripts/run_task.R` – task runner referenced by each SLURM array task.
+-   During execution, results land in `output/slurm_output/<job_name>/<parent_job_id>/…`.
+-   SLURM stdout/stderr are re-homed to `output/slurm_prints/<job_name>/<parent_job_id>/…`.
 
 # 1. Specify the Job
 
@@ -86,8 +83,9 @@ job_inputs <- list(
   # Seeds applied to every scenario/use-case combination
   seeds = 1:10,
 
-  # How many seeds to bundle into one SLURM array task (should be a divisor of length(seeds))
-  seeds_per_task = 10,
+  # Number of runs to assign to each SLURM array task
+  # (~2112 total runs / 150 per task = ~14 tasks, well under SLURM QoS limits)
+  runs_per_task = 150,
 
   # Data scenarios to include (currently "simulation_n3" only)
   data_scenarios = c("simulation_n3"),
@@ -121,7 +119,7 @@ job_config <- make_job_config(
   p_star_grid = job_inputs$p_star_grid,
   seeds = job_inputs$seeds,
   data_scenarios = job_inputs$data_scenarios,
-  seeds_per_task = job_inputs$seeds_per_task,
+  runs_per_task = job_inputs$runs_per_task,
   email = job_inputs$email,
   output_root = job_inputs$output_root,
   credible_set_rho = job_inputs$credible_set_rho,
@@ -164,8 +162,6 @@ summarise_job_config(job_config) %>%
 ```{r preview-tasks}
 job_config$tables$tasks %>%
   arrange(task_id) %>%
-  mutate(runs = runs_per_task) %>%
-  select(task_id, scenario_id, use_case_id, runs) %>%
   kable()
 ```
 
@@ -184,10 +180,11 @@ cat("Total SLURM tasks:", total_tasks, "\n")
 Set `commit_artifacts <- TRUE` once you are satisfied with the preview.
 The chunk below writes:
 
-1.  `output/run_history/<job_name>/job_config.json`
-2.  Supporting CSV tables (`run_table.csv`, `scenario_table.csv`,
-    `use_cases.csv`, `task_table.csv`)
-3.  `output/slurm_scripts/<job_name>.slurm`
+1.  `output/temp/<job_name>/job_config.json` and supporting files
+2.  `output/slurm_scripts/<job_name>.slurm`
+
+During the first SLURM task, these temp files will be moved to 
+`output/run_history/<job_name>/<parent_job_id>/` for permanent record-keeping.
 
 ```{r write-artifacts}
 commit_artifacts <- TRUE  # flip to TRUE when ready
@@ -206,17 +203,8 @@ run_task_script <- here("inst", "scripts", "run_task.R")
 job_name <- "susine_sim_grid_demo"
 task_id <- "1" # Using the first task for testing
 job_root <- here("output")
-config_path <- here("output", "run_history", "susine_sim_grid_demo", "job_config.json")
-
-#Confirm default config path works
-# command <- sprintf(
-#   'Rscript "%s" --job-name "%s" --task-id "%s" --job-root "%s"',
-#   run_task_script,
-#   job_name,
-#   task_id,
-#   job_root
-# )
-
+# Note: config_path now points to temp folder, not run_history
+config_path <- here("output", "temp", "susine_sim_grid_demo", "job_config.json")
 
 # Construct the full command
 command <- sprintf(
@@ -237,9 +225,9 @@ system(command)
 
 ```{r debug run_task function}
 job_name   <- "susine_sim_grid_demo"
-task_id    <- 30L
+task_id    <- 1L
 job_root   <- here("output")
-config_path <- here("output", "run_history", "susine_sim_grid_demo", "job_config.json")
+config_path <- here("output", "temp", "susine_sim_grid_demo", "job_config.json")
 quiet      <- FALSE
 
 options(error = quote(browser(skipCalls = 1)))  # drop into the debugger on error
@@ -261,7 +249,7 @@ test_susine::run_task(
 run_task_script <- here("inst", "scripts", "run_task.R")
 job_name <- "susine_sim_grid_demo"
 job_root <- here("output")
-config_path <- file.path(job_root, "run_history", job_name, "job_config.json")
+config_path <- file.path(job_root, "temp", job_name, "job_config.json")
 
 cfg <- jsonlite::read_json(config_path, simplifyVector = TRUE)
 task_ids <- sort(unique(cfg$tables$runs$task_id))

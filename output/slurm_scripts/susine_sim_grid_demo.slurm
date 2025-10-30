@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=susine_sim_grid_demo
-#SBATCH --array=1-36
+#SBATCH --array=1-2112
 #SBATCH --time=01:00:00
 #SBATCH --mem=2G
 #SBATCH --cpus-per-task=1

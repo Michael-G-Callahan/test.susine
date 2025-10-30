@@ -173,40 +173,36 @@ make_run_tables <- function(use_case_ids,
 #' Attach task identifiers to the run table.
 #'
 #' @param runs Run tibble from [make_run_tables()].
-#' @param seeds_per_task Integer number of seeds executed inside each task.
-#' @return Tibble with `task_id` column added and supporting task summary.
+#' @param runs_per_task Integer number of runs assigned to each SLURM task.
+#' @param shuffle_seed Optional seed for reproducible shuffling (default: NULL for random).
+#' @return Tibble with `task_id` and `shuffled_order` columns added, and supporting task summary.
 #' @keywords internal
-assign_task_ids <- function(runs, seeds_per_task) {
-  if (seeds_per_task < 1) {
-    stop("seeds_per_task must be >= 1")
+assign_task_ids <- function(runs, runs_per_task, shuffle_seed = NULL) {
+  if (runs_per_task < 1) {
+    stop("runs_per_task must be >= 1")
   }
-  runs_aug <- runs %>%
-    dplyr::group_by(scenario_id, use_case_id) %>%
-    dplyr::mutate(
-      seed_index = dplyr::row_number(),
-      task_local = ((seed_index - 1L) %/% seeds_per_task) + 1L
-    ) %>%
-    dplyr::ungroup()
+  
+  n_runs <- nrow(runs)
+  
+  # Create shuffled order
+  if (!is.null(shuffle_seed)) {
+    set.seed(shuffle_seed)
+  }
+  shuffled_idx <- sample(n_runs)
+  
+  # Assign task_ids based on shuffled order
+  runs_shuffled <- runs %>%
+    dplyr::mutate(shuffled_order = shuffled_idx) %>%
+    dplyr::arrange(shuffled_order) %>%
+    dplyr::mutate(task_id = ((dplyr::row_number() - 1L) %/% as.integer(runs_per_task)) + 1L) %>%
+    dplyr::arrange(run_id)  # unshuffle back to original run_id order
+  
+  tasks_summary <- runs_shuffled %>%
+    dplyr::group_by(task_id) %>%
+    dplyr::summarise(runs_per_task = dplyr::n(), .groups = "drop") %>%
+    dplyr::arrange(task_id)
 
-  tasks <- runs_aug %>%
-    dplyr::distinct(scenario_id, use_case_id, task_local) %>%
-    dplyr::arrange(scenario_id, use_case_id, task_local) %>%
-    dplyr::mutate(task_id = dplyr::row_number())
-
-  runs_final <- runs_aug %>%
-    dplyr::left_join(tasks, by = c("scenario_id", "use_case_id", "task_local")) %>%
-    dplyr::arrange(task_id, scenario_id, use_case_id, seed) %>%
-    dplyr::mutate(run_id = dplyr::row_number()) %>%
-    dplyr::select(-seed_index, -task_local)
-
-  tasks_summary <- tasks %>%
-    dplyr::left_join(
-      runs_final %>%
-        dplyr::count(task_id, name = "runs_per_task"),
-      by = "task_id"
-    )
-
-  list(runs = runs_final, tasks = tasks_summary)
+  list(runs = runs_shuffled, tasks = tasks_summary)
 }
 
 #' Create an in-memory job configuration.
@@ -219,7 +215,7 @@ assign_task_ids <- function(runs, seeds_per_task) {
 #' @param p_star_grid Integer vector.
 #' @param seeds Integer vector of RNG seeds.
 #' @param data_scenarios Character vector.
-#' @param seeds_per_task Integer seeds handled by each SLURM array task.
+#' @param runs_per_task Integer number of runs assigned to each SLURM task.
 #' @param email Notification email address.
 #' @param output_root Root directory for outputs (default `output`).
 #' @param credible_set_rho Credible set cumulative PIP threshold.
@@ -238,7 +234,7 @@ make_job_config <- function(job_name,
                             p_star_grid,
                             seeds,
                             data_scenarios = "simulation_n3",
-                            seeds_per_task = 1,
+                            runs_per_task = 150,
                             email = "mgc5166@psu.edu",
                             output_root = "output",
                             credible_set_rho = 0.95,
@@ -271,7 +267,7 @@ make_job_config <- function(job_name,
     grid_mode = grid_mode
   )
 
-  runs_tasks <- assign_task_ids(tables$runs, seeds_per_task = seeds_per_task)
+  runs_tasks <- assign_task_ids(tables$runs, runs_per_task = runs_per_task)
 
   list(
     job = list(
@@ -279,7 +275,7 @@ make_job_config <- function(job_name,
       HPC = HPC,
       email = email,
       created_at = timestamp_utc(),
-      seeds_per_task = seeds_per_task,
+      runs_per_task = runs_per_task,
       credible_set_rho = credible_set_rho,
       purity_threshold = purity_threshold,
       compute = list(
