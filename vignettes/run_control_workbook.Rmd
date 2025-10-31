@@ -64,7 +64,7 @@ job_inputs <- list(
   output_root = here("output"),
 
   # Grid mode: "full" for Cartesian product, "minimal" for lightweight smoke tests
-  grid_mode = "minimal",
+  grid_mode = "full",
 
   # Which predefined model variants to include (see use_case_catalog())
   use_cases = c("a_i", "a_ii", "a_iii", "a_iv",
@@ -81,11 +81,11 @@ job_inputs <- list(
   prior_noise_nonc = c(0.25, 0.5, 0.75),
 
   # Seeds applied to every scenario/use-case combination
-  seeds = 1:10,
+  seeds = 1:25,
 
   # Number of runs to assign to each SLURM array task
   # (~2112 total runs / 150 per task = ~14 tasks, well under SLURM QoS limits)
-  runs_per_task = 150,
+  runs_per_task = 300,
 
   # Data scenarios to include (currently "simulation_n3" only)
   data_scenarios = c("simulation_n3"),

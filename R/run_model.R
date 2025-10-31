@@ -228,17 +228,35 @@ write_run_outputs <- function(run_row,
                               data_bundle,
                               model_result) {
 
-  # Prefer the directory exported by the Slurm wrapper; fallback to old layout
-  env_out <- Sys.getenv("SUSINE_OUTPUT_DIR", unset = "")
-  if (nzchar(env_out)) {
-    run_dir <- env_out
+  # Compute run-based output directory with sharding by run_id
+  run_id_val <- as.integer(run_row$run_id)
+  shard_size <- job_config$job$slurm$shard_size_output %||% 1000L
+  
+  # Construct base directory: slurm_output/<job_name>/<parent_id>
+  env_parent_id <- Sys.getenv("SUSINE_PARENT_ID", unset = "")
+  env_job_name <- Sys.getenv("SUSINE_JOB_NAME", unset = "")
+  
+  if (nzchar(env_parent_id) && nzchar(env_job_name)) {
+    # SLURM environment available
+    base_output <- file.path(
+      job_config$paths$slurm_output_dir,
+      env_job_name,
+      env_parent_id
+    )
   } else {
-    # old behavior
-    run_id  <- sprintf("run-%05d", run_row$run_id)
-    task_dir <- file.path(job_config$paths$slurm_output_dir,
-                          sprintf("task-%03d", run_row$task_id))
-    run_dir <- file.path(task_dir, run_id)
+    # Fallback for local testing
+    base_output <- file.path(job_config$paths$slurm_output_dir, "local_test")
   }
+  
+  # Compute shard directory
+  if (shard_size > 0) {
+    shard_idx <- (run_id_val - 1L) %/% as.integer(shard_size)
+    shard_dir <- sprintf("shard-%03d", shard_idx)
+    run_dir <- file.path(base_output, shard_dir, sprintf("run-%05d", run_id_val))
+  } else {
+    run_dir <- file.path(base_output, sprintf("run-%05d", run_id_val))
+  }
+  
   ensure_dir(run_dir)
 
   model_metrics <- dplyr::mutate(

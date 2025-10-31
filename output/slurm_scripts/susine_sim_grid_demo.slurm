@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=susine_sim_grid_demo
-#SBATCH --array=1-2112
-#SBATCH --time=01:00:00
+#SBATCH --array=1-176
+#SBATCH --time=02:59:00
 #SBATCH --mem=2G
 #SBATCH --cpus-per-task=1
 #SBATCH --mail-user=mgc5166@psu.edu
@@ -12,13 +12,13 @@
 
 set -euo pipefail
 
-JOB_ROOT="C:/Users/mgcal/OneDrive/Documents/School/Research/Genetics/cTWAS Generalization/Code/test_susine/output"
-CONFIG_PATH="C:/Users/mgcal/OneDrive/Documents/School/Research/Genetics/cTWAS Generalization/Code/test_susine/output/temp/susine_sim_grid_demo/job_config.json"
-RUN_TASK_SCRIPT="C:/Users/mgcal/OneDrive/Documents/School/Research/Genetics/cTWAS Generalization/Code/test_susine/inst/scripts/run_task.R"
-SLURM_PRINTS_BASE="C:/Users/mgcal/OneDrive/Documents/School/Research/Genetics/cTWAS Generalization/Code/test_susine/output/slurm_prints"
-SLURM_OUTPUT_BASE="C:/Users/mgcal/OneDrive/Documents/School/Research/Genetics/cTWAS Generalization/Code/test_susine/output/slurm_output"
-TEMP_DIR="C:/Users/mgcal/OneDrive/Documents/School/Research/Genetics/cTWAS Generalization/Code/test_susine/output/temp/susine_sim_grid_demo"
-RUN_HISTORY_BASE="C:/Users/mgcal/OneDrive/Documents/School/Research/Genetics/cTWAS Generalization/Code/test_susine/output/run_history"
+JOB_ROOT="/storage/work/mgc5166/SuSiNE - 2.0/test_susine/output"
+CONFIG_PATH="/storage/work/mgc5166/SuSiNE - 2.0/test_susine/output/temp/susine_sim_grid_demo/job_config.json"
+RUN_TASK_SCRIPT="/storage/work/mgc5166/SuSiNE - 2.0/test_susine/inst/scripts/run_task.R"
+SLURM_PRINTS_BASE="/storage/work/mgc5166/SuSiNE - 2.0/test_susine/output/slurm_prints"
+SLURM_OUTPUT_BASE="/storage/work/mgc5166/SuSiNE - 2.0/test_susine/output/slurm_output"
+TEMP_DIR="/storage/work/mgc5166/SuSiNE - 2.0/test_susine/output/temp/susine_sim_grid_demo"
+RUN_HISTORY_BASE="/storage/work/mgc5166/SuSiNE - 2.0/test_susine/output/run_history"
 
 # --- identifiers (stable across Slurm versions) ---
 JOBNAME="${SLURM_JOB_NAME}"
